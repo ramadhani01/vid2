@@ -757,7 +757,7 @@
     <!-- ========== VIDEO GRID ========== -->
     <div id="loadingIndicator" class="loading" style="display:none;">
         <i class="fas fa-spinner"></i><br><br>
-        Loading...
+        Memuat data dari cloud...
     </div>
     <div class="video-grid" id="videoGrid"></div>
 
@@ -1270,29 +1270,45 @@
             
             // Cari judul video untuk konfirmasi
             let videoTitle = '';
+            let found = false;
+            
             if (isInFolder) {
                 const currentFolder = data.folders.find(f => f.name === currentFolderName);
                 if (currentFolder) {
-                    const video = currentFolder.videos.find(v => v.id === videoId);
-                    if (video) videoTitle = video.title;
+                    const video = currentFolder.videos.find(v => String(v.id) === String(videoId));
+                    if (video) {
+                        videoTitle = video.title;
+                        found = true;
+                    }
                 }
             } else {
-                const video = data.rootVideos.find(v => v.id === videoId);
-                if (video) videoTitle = video.title;
+                // Cari di rootVideos - pakai perbandingan string
+                const video = data.rootVideos.find(v => String(v.id) === String(videoId));
+                if (video) {
+                    videoTitle = video.title;
+                    found = true;
+                }
             }
             
-            if (!confirm(`Yakin ingin menghapus video "${videoTitle || 'ini'}"?`)) return;
+            if (!found) {
+                showNotification('❌ Video tidak ditemukan! ID: ' + videoId, 'error');
+                console.log('ID yang dicari:', videoId);
+                console.log('Data rootVideos:', data.rootVideos);
+                return;
+            }
+            
+            if (!confirm(`Yakin ingin menghapus video "${videoTitle}"?`)) return;
 
             try {
                 if (isInFolder) {
                     const currentFolder = data.folders.find(f => f.name === currentFolderName);
                     if (currentFolder) {
-                        const index = currentFolder.videos.findIndex(v => v.id === videoId);
+                        const index = currentFolder.videos.findIndex(v => String(v.id) === String(videoId));
                         if (index !== -1) {
                             currentFolder.videos.splice(index, 1);
                             showNotification(`✅ Video "${videoTitle}" berhasil dihapus dari folder`, 'success');
                         } else {
-                            showNotification('❌ Video tidak ditemukan!', 'error');
+                            showNotification('❌ Video tidak ditemukan di folder!', 'error');
                             return;
                         }
                     } else {
@@ -1300,12 +1316,12 @@
                         return;
                     }
                 } else {
-                    const index = data.rootVideos.findIndex(v => v.id === videoId);
+                    const index = data.rootVideos.findIndex(v => String(v.id) === String(videoId));
                     if (index !== -1) {
                         data.rootVideos.splice(index, 1);
                         showNotification(`✅ Video "${videoTitle}" berhasil dihapus dari Root`, 'success');
                     } else {
-                        showNotification('❌ Video tidak ditemukan!', 'error');
+                        showNotification('❌ Video tidak ditemukan di Root!', 'error');
                         return;
                     }
                 }
