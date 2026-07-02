@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidoy Stream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #1a1a1a;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            font-family: 'Rubik Mono One', sans-serif;
+            font-size: 28px;
+            color: #f59b00;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .logo small {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: #555;
+            font-weight: normal;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .total {
+            color: #555;
+            font-size: 14px;
+        }
+        .total span {
+            color: #f59b00;
+            font-weight: bold;
+        }
+
+        .back-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #f59b00;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: none;
+        }
+        .back-btn:hover {
+            background: #f59b00;
+            color: #0a0a0a;
+            border-color: #f59b00;
+        }
+        .back-btn.visible {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-toggle {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #f59b00;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .admin-toggle:hover {
+            background: #f59b00;
+            color: #0a0a0a;
+            border-color: #f59b00;
+        }
+        .admin-toggle.active {
+            background: #f59b00;
+            color: #0a0a0a;
+        }
+        .admin-toggle.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ========== BREADCRUMB ========== */
+        .breadcrumb {
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            color: #555;
+            font-size: 14px;
+            display: none;
+        }
+        .breadcrumb.visible {
+            display: block;
+        }
+        .breadcrumb span {
+            color: #f59b00;
+        }
+        .breadcrumb i {
+            margin: 0 8px;
+            font-size: 12px;
+        }
+
+        /* ========== ADMIN PANEL ========== */
+        .admin-panel {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 24px;
+            display: none;
+        }
+        .admin-panel.visible {
+            display: block;
+        }
+
+        .admin-panel h2 {
+            color: #f59b00;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 10px;
+        }
+
+        .admin-tab {
+            background: transparent;
+            border: none;
+            color: #555;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        .admin-tab:hover {
+            color: white;
+            background: #1a1a1a;
+        }
+        .admin-tab.active {
+            color: #f59b00;
+            background: #1a1a1a;
+        }
+
+        .admin-form {
+            display: none;
+        }
+        .admin-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #f59b00;
+            box-shadow: 0 0 0 3px rgba(245, 155, 0, 0.1);
+        }
+        .form-group input::placeholder {
+            color: #444;
+        }
+        .form-group select option {
+            background: #0a0a0a;
+        }
+
+        .btn-submit {
+            background: #f59b00;
+            color: #0a0a0a;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245, 155, 0, 0.3);
+        }
+        .btn-submit:active {
+            transform: scale(0.96);
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-danger:hover {
+            background: #ef4444;
+        }
+
+        /* ========== GRID ========== */
+        .video-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+        }
+
+        /* ========== CARD ========== */
+        .video-card {
+            background: #141414;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid #1f1f1f;
+            text-decoration: none;
+            display: block;
+            color: white;
+            position: relative;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            border-color: #f59b00;
+            box-shadow: 0 8px 25px rgba(245, 155, 0, 0.12);
+        }
+
+        .video-card:active {
+            transform: scale(0.96);
+        }
+
+        .video-card .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(220, 38, 38, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            transition: all 0.3s;
+            display: none;
+        }
+        .video-card .delete-btn:hover {
+            transform: scale(1.1);
+            background: #ef4444;
+        }
+        .admin-panel.visible ~ .video-grid .video-card .delete-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ========== FOLDER CARD ========== */
+        .folder-card {
+            background: #141414;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #2a2a2a;
+            text-decoration: none;
+            display: block;
+            color: white;
+            position: relative;
+        }
+
+        .folder-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: #f59b00;
+            box-shadow: 0 8px 30px rgba(245, 155, 0, 0.2);
+        }
+
+        .folder-card:active {
+            transform: scale(0.96);
+        }
+
+        .folder-card .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(220, 38, 38, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            transition: all 0.3s;
+            display: none;
+        }
+        .folder-card .delete-btn:hover {
+            transform: scale(1.1);
+            background: #ef4444;
+        }
+        .admin-panel.visible ~ .video-grid .folder-card .delete-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .folder-card .thumb {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .folder-card .thumb i {
+            font-size: 60px;
+            color: #f59b00;
+            opacity: 0.8;
+        }
+
+        .folder-card .thumb .folder-count {
+            background: rgba(245, 155, 0, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #f59b00;
+            border: 1px solid rgba(245, 155, 0, 0.3);
+        }
+
+        .folder-card .info {
+            padding: 12px 14px;
+            background: #1a1a1a;
+        }
+
+        .folder-card .info h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #f59b00;
+        }
+
+        .folder-card .info small {
+            color: #555;
+            font-size: 11px;
+        }
+
+        /* ========== THUMBNAIL ========== */
+        .video-card .thumb {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #0a0a0a;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-card .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            transition: 0.4s;
+            background: #0a0a0a;
+        }
+
+        .video-card:hover .thumb img {
+            transform: scale(1.02);
+        }
+
+        .video-card .thumb .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: rgba(255,255,255,0.8);
+            text-shadow: 0 0 30px rgba(0,0,0,0.8);
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+        }
+
+        .video-card:hover .thumb .play-icon {
+            opacity: 1;
+        }
+
+        /* ========== INFO ========== */
+        .video-card .info {
+            padding: 12px 14px;
+        }
+
+        .video-card .info h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: white;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            max-width: 1200px;
+            margin: 30px auto 0;
+            text-align: center;
+            padding: 20px 0 10px;
+            border-top: 1px solid #1a1a1a;
+            color: #333;
+            font-size: 13px;
+        }
+        .footer i {
+            color: #ef4444;
+        }
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #444;
+        }
+        .empty-state i {
+            font-size: 50px;
+            color: #1a1a1a;
+            display: block;
+            margin-bottom: 15px;
+        }
+        .empty-state h2 {
+            color: #f59b00;
+            margin-bottom: 8px;
+        }
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .empty-state strong {
+            color: #f59b00;
+        }
+
+        /* ========== LOGIN MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #141414;
+            border: 1px solid #f59b00;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-box h2 {
+            color: #f59b00;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .modal-box p {
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .modal-box .form-group {
+            margin-bottom: 20px;
+        }
+        .modal-box .form-group input {
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 4px;
+            padding: 14px;
+        }
+        .modal-box .btn-submit {
+            width: 100%;
+        }
+        .modal-box .error-msg {
+            color: #ef4444;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+        .modal-box .error-msg.visible {
+            display: block;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 12px;
+            }
+            .logo { font-size: 22px; }
+            .video-card .thumb .play-icon { font-size: 36px; }
+            .folder-card .thumb i { font-size: 40px; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .header-right { width: 100%; justify-content: space-between; }
+            .admin-panel { padding: 16px; }
+            .admin-tabs { flex-wrap: wrap; }
+            .modal-box { padding: 24px; }
+        }
+
+        @media (max-width: 400px) {
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 10px;
+            }
+            .video-card .info { padding: 8px 10px; }
+            .video-card .info h3 { font-size: 12px; }
+        }
+
+        /* ========== NOTIFICATION ========== */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            border: 1px solid #f59b00;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            z-index: 10000;
+            animation: slideIn 0.5s ease;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        .notification.success {
+            border-color: #22c55e;
+        }
+        .notification.error {
+            border-color: #ef4444;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== LOGIN MODAL ========== -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-box">
+            <h2><i class="fas fa-lock"></i> Admin Login</h2>
+            <p>Masukkan password untuk mengakses panel admin</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="password" id="adminPassword" placeholder="••••••••" required autofocus>
+                </div>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-unlock"></i> Buka Panel
+                </button>
+                <div class="error-msg" id="loginError">
+                    <i class="fas fa-exclamation-circle"></i> Password salah!
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="header">
+        <div class="logo" onclick="goHome()">
+            Vidoy
+            <small>S T R E A M</small>
+        </div>
+        <div class="header-right">
+            <button class="back-btn" id="backBtn" onclick="goBack()">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+            <button class="admin-toggle" id="adminToggle" onclick="toggleAdmin()">
+                <i class="fas fa-cog"></i> Admin
+            </button>
+            <div class="total">
+                <i class="fa-regular fa-film"></i> <span id="totalCount">0</span> Video
+            </div>
+        </div>
+    </div>
+
+    <div class="breadcrumb" id="breadcrumb">
+        <i class="fas fa-folder"></i> <span id="currentFolder">Root</span>
+    </div>
+
+    <!-- ========== ADMIN PANEL ========== -->
+    <div class="admin-panel" id="adminPanel">
+        <h2><i class="fas fa-cog"></i> Panel Admin</h2>
+        
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="switchTab('video')">
+                <i class="fas fa-video"></i> Tambah Video
+            </button>
+            <button class="admin-tab" onclick="switchTab('folder')">
+                <i class="fas fa-folder"></i> Tambah Folder
+            </button>
+            <button class="admin-tab" onclick="switchTab('manage')">
+                <i class="fas fa-list"></i> Kelola
+            </button>
+        </div>
+
+        <!-- Form Tambah Video -->
+        <div class="admin-form active" id="formVideo">
+            <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Video Baru</h3>
+            <form id="addVideoForm">
+                <div class="form-group">
+                    <label>Judul Video</label>
+                    <input type="text" id="videoTitle" placeholder="Masukkan judul video" required>
+                </div>
+                <div class="form-group">
+                    <label>URL Thumbnail</label>
+                    <input type="url" id="videoThumb" placeholder="https://example.com/thumbnail.jpg" required>
+                </div>
+                <div class="form-group">
+                    <label>URL Tujuan (Videy/Link)</label>
+                    <input type="url" id="videoUrl" placeholder="https://videy.co/v/?id=xxx" required>
+                </div>
+                <div class="form-group">
+                    <label>Simpan di Folder (Opsional)</label>
+                    <select id="videoFolder">
+                        <option value="">Root (Tanpa Folder)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-plus"></i> Tambahkan Video
+                </button>
+            </form>
+        </div>
+
+        <!-- Form Tambah Folder -->
+        <div class="admin-form" id="formFolder">
+            <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Folder Baru</h3>
+            <form id="addFolderForm">
+                <div class="form-group">
+                    <label>Nama Folder</label>
+                    <input type="text" id="folderName" placeholder="Misal: Hot Collection" required>
+                </div>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-folder-plus"></i> Buat Folder
+                </button>
+            </form>
+        </div>
+
+        <!-- Manage -->
+        <div class="admin-form" id="formManage">
+            <h3 style="color: #f59b00; margin-bottom: 15px;">Kelola Konten</h3>
+            <p style="color: #555; margin-bottom: 15px;">Hapus item dengan mengklik tombol <span style="color: #ef4444;">✕</span> pada kartu</p>
+            <button onclick="exportData()" class="btn-submit" style="background: #22c55e; margin-right: 10px;">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+            <button onclick="importData()" class="btn-submit" style="background: #3b82f6;">
+                <i class="fas fa-upload"></i> Import Data
+            </button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importDataFile(event)">
+            <br><br>
+            <button onclick="changePassword()" class="btn-submit" style="background: #8b5cf6;">
+                <i class="fas fa-key"></i> Ganti Password
+            </button>
+        </div>
+    </div>
+
+    <div class="video-grid" id="videoGrid"></div>
+
+    <div class="footer">
+        Made with <i class="fas fa-heart"></i> by Vidoy Stream
+    </div>
+
+    <script>
+        // ==========================================================
+        // 🔐 PASSWORD ADMIN (Ganti sesuai keinginan)
+        // ==========================================================
+        const DEFAULT_PASSWORD = "admin123";
+        let adminPassword = localStorage.getItem('adminPassword') || DEFAULT_PASSWORD;
+        let isAdminLoggedIn = false;
+
+        // ==========================================================
+        // 📦 DATA
+        // ==========================================================
+        let data = {
+            folders: [],
+            rootVideos: []
+        };
+
+        // Load data dari localStorage
+        function loadData() {
+            const saved = localStorage.getItem('vidoyData');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    data = parsed;
+                    return true;
+                } catch (e) {
+                    console.error('Error loading data:', e);
+                }
+            }
+            
+            // Data default jika belum ada
+            data = {
+                folders: [
+                    {
+                        id: 'folder1',
+                        name: '🔥 Hot Collection',
+                        videos: [
+                            {
+                                id: 101,
+                                title: "Video Hot 1",
+                                thumbnail: "https://i.ibb.co.com/TM0r23nZ/Screenshot-20260702-183601.jpg",
+                                url: "https://move2link.co/4aabb65"
+                            },
+                            {
+                                id: 102,
+                                title: "Video Hot 2",
+                                thumbnail: "https://raw.githubusercontent.com/ramadhani01/vidoyy/refs/heads/main/thumbnails/Screenshot_20260627-134730.jpg",
+                                url: "https://videy.co/v/?id=sZockiYd1"
+                            }
+                        ]
+                    },
+                    {
+                        id: 'folder2',
+                        name: '✨ Premium Videos',
+                        videos: [
+                            {
+                                id: 201,
+                                title: "Premium 1",
+                                thumbnail: "https://raw.githubusercontent.com/ramadhani01/vidoyy/refs/heads/main/thumbnails/Screenshot_20260627-134305.jpg",
+                                url: "https://videy.co/v/?id=TXk0bCC41"
+                            },
+                            {
+                                id: 202,
+                                title: "Premium 2",
+                                thumbnail: "https://raw.githubusercontent.com/ramadhani01/vidoyy/refs/heads/main/thumbnails/Screenshot_20260627-134512.jpg",
+                                url: "https://videy.co/v/?id=xr8JWPOG1"
+                            }
+                        ]
+                    }
+                ],
+                rootVideos: [
+                    {
+                        id: 1,
+                        title: "rok hijau",
+                        thumbnail: "https://i.ibb.co.com/TM0r23nZ/Screenshot-20260702-183601.jpg",
+                        url: "https://move2link.co/4aabb65"
+                    },
+                    {
+                        id: 2,
+                        title: "lagi vcs",
+                        thumbnail: "https://raw.githubusercontent.com/ramadhani01/vidoyy/refs/heads/main/thumbnails/Screenshot_20260627-134730.jpg",
+                        url: "https://videy.co/v/?id=sZockiYd1"
+                    },
+                    {
+                        id: 3,
+                        title: "main lidah",
+                        thumbnail: "https://raw.githubusercontent.com/ramadhani01/vidoyy/refs/heads/main/thumbnails/Screenshot_20260627-134305.jpg",
+                        url: "https://videy.co/v/?id=TXk0bCC41"
+                    },
+                    {
+                        id: 4,
+                        title: "clmk 4 jari",
+                        thumbnail: "https://raw.githubusercontent.com/ramadhani01/vidoyy/refs/heads/main/thumbnails/Screenshot_20260627-134512.jpg",
+                        url: "https://videy.co/v/?id=xr8JWPOG1"
+                    }
+                ]
+            };
+            saveData();
+            return false;
+        }
+
+        function saveData() {
+            localStorage.setItem('vidoyData', JSON.stringify(data));
+            updateFolderSelect();
+        }
+
+        // ==========================================================
+        // 🧭 NAVIGASI
+        // ==========================================================
+        let history = [];
+        let currentItems = [];
+        let currentFolderName = 'Root';
+
+        function goHome() {
+            history = [];
+            currentFolderName = 'Root';
+            renderCurrentView();
+            document.getElementById('backBtn').classList.remove('visible');
+            document.getElementById('breadcrumb').classList.remove('visible');
+        }
+
+        function goBack() {
+            if (history.length > 0) {
+                const prev = history.pop();
+                currentFolderName = prev.name;
+                renderItems(prev.items, true);
+                if (history.length === 0) {
+                    document.getElementById('backBtn').classList.remove('visible');
+                    document.getElementById('breadcrumb').classList.remove('visible');
+                } else {
+                    document.getElementById('breadcrumb').classList.add('visible');
+                    document.getElementById('currentFolder').textContent = currentFolderName;
+                }
+            }
+        }
+
+        function openFolder(folder) {
+            history.push({
+                name: currentFolderName,
+                items: currentItems
+            });
+
+            currentFolderName = folder.name;
+            renderItems(folder.videos, true);
+
+            document.getElementById('backBtn').classList.add('visible');
+            document.getElementById('breadcrumb').classList.add('visible');
+            document.getElementById('currentFolder').textContent = folder.name;
+        }
+
+        // ==========================================================
+        // 🎬 RENDER
+        // ==========================================================
+        function renderItems(items, isFolderView = false) {
+            currentItems = items;
+            
+            const grid = document.getElementById('videoGrid');
+
+            if (!items || items.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <h2>Kosong</h2>
+                        <p>Tidak ada video di sini</p>
+                    </div>
+                `;
+                document.getElementById('totalCount').textContent = '0';
+                return;
+            }
+
+            const showDelete = isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible');
+
+            grid.innerHTML = items.map((v, index) => `
+                <div class="video-card" onclick="window.open('${v.url}', '_blank')">
+                    ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})">
+                        <i class="fas fa-times"></i>
+                    </button>` : ''}
+                    <div class="thumb">
+                        <img src="${v.thumbnail}" alt="${v.title}" 
+                             loading="lazy"
+                             onerror="this.src='https://via.placeholder.com/300x170/222/f59b00?text=No+Image'">
+                        <div class="play-icon">
+                            <i class="fa-solid fa-circle-play"></i>
+                        </div>
+                    </div>
+                    <div class="info">
+                        <h3 title="${v.title}">${v.title}</h3>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('totalCount').textContent = items.length;
+        }
+
+        function renderCurrentView() {
+            const allItems = [
+                ...data.folders.map(f => ({ ...f, isFolder: true })),
+                ...data.rootVideos.map(v => ({ ...v, isFolder: false }))
+            ];
+
+            currentItems = allItems;
+
+            const grid = document.getElementById('videoGrid');
+            const showDelete = isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible');
+
+            if (allItems.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <h2>Belum Ada Konten</h2>
+                        <p>Gunakan panel admin untuk menambahkan video atau folder</p>
+                    </div>
+                `;
+                document.getElementById('totalCount').textContent = '0';
+                return;
+            }
+
+            grid.innerHTML = allItems.map(item => {
+                if (item.isFolder) {
+                    return `
+                        <div class="folder-card" onclick="openFolder({id: '${item.id}', name: '${item.name}', videos: ${JSON.stringify(item.videos).replace(/"/g, '&quot;')}})">
+                            ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteFolder('${item.id}')">
+                                <i class="fas fa-times"></i>
+                            </button>` : ''}
+                            <div class="thumb">
+                                <i class="fas fa-folder"></i>
+                                <div class="folder-count">${item.videos.length} video</div>
+                            </div>
+                            <div class="info">
+                                <h3><i class="fas fa-folder-open" style="font-size:12px;margin-right:6px;color:#f59b00;"></i>${item.name}</h3>
+                                <small>${item.videos.length} video dalam folder</small>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="video-card" onclick="window.open('${item.url}', '_blank')">
+                            ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)">
+                                <i class="fas fa-times"></i>
+                            </button>` : ''}
+                            <div class="thumb">
+                                <img src="${item.thumbnail}" alt="${item.title}" 
+                                     loading="lazy"
+                                     onerror="this.src='https://via.placeholder.com/300x170/222/f59b00?text=No+Image'">
+                                <div class="play-icon">
+                                    <i class="fa-solid fa-circle-play"></i>
+                                </div>
+                            </div>
+                            <div class="info">
+                                <h3 title="${item.title}">${item.title}</h3>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            let totalVideos = data.rootVideos.length;
+            data.folders.forEach(f => totalVideos += f.videos.length);
+            document.getElementById('totalCount').textContent = totalVideos;
+        }
+
+        // ==========================================================
+        // 🔐 LOGIN SYSTEM
+        // ==========================================================
+        function toggleAdmin() {
+            if (!isAdminLoggedIn) {
+                // Tampilkan modal login
+                document.getElementById('loginModal').classList.add('visible');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('loginError').classList.remove('visible');
+                setTimeout(() => document.getElementById('adminPassword').focus(), 100);
+                return;
+            }
+
+            // Jika sudah login, toggle panel
+            const panel = document.getElementById('adminPanel');
+            const btn = document.getElementById('adminToggle');
+            panel.classList.toggle('visible');
+            btn.classList.toggle('active');
+            if (panel.classList.contains('visible')) {
+                btn.innerHTML = '<i class="fas fa-times"></i> Tutup';
+                updateFolderSelect();
+                renderCurrentView();
+            } else {
+                btn.innerHTML = '<i class="fas fa-cog"></i> Admin';
+                renderCurrentView();
+            }
+        }
+
+        // Login form
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === adminPassword) {
+                isAdminLoggedIn = true;
+                document.getElementById('loginModal').classList.remove('visible');
+                document.getElementById('adminToggle').innerHTML = '<i class="fas fa-cog"></i> Admin';
+                document.getElementById('adminToggle').classList.remove('locked');
+                showNotification('✅ Login berhasil! Selamat datang Admin.', 'success');
+                
+                // Buka panel otomatis
+                document.getElementById('adminPanel').classList.add('visible');
+                document.getElementById('adminToggle').classList.add('active');
+                document.getElementById('adminToggle').innerHTML = '<i class="fas fa-times"></i> Tutup';
+                updateFolderSelect();
+                renderCurrentView();
+            } else {
+                document.getElementById('loginError').classList.add('visible');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPassword').focus();
+                showNotification('❌ Password salah!', 'error');
+            }
+        });
+
+        // Login dengan Enter
+        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Tutup modal dengan klik di luar
+        document.getElementById('loginModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('visible');
+            }
+        });
+
+        // ==========================================================
+        // 🔑 GANTI PASSWORD
+        // ==========================================================
+        function changePassword() {
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login terlebih dahulu!', 'error');
+                return;
+            }
+            
+            const newPass = prompt('Masukkan password baru:');
+            if (newPass && newPass.length >= 4) {
+                adminPassword = newPass;
+                localStorage.setItem('adminPassword', adminPassword);
+                showNotification('✅ Password berhasil diubah!', 'success');
+            } else if (newPass !== null) {
+                showNotification('❌ Password minimal 4 karakter!', 'error');
+            }
+        }
+
+        // ==========================================================
+        // 📝 ADMIN FUNCTIONS
+        // ==========================================================
+        function switchTab(tab) {
+            if (!isAdminLoggedIn) return;
+            
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-form').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'video') {
+                document.querySelector('.admin-tab:nth-child(1)').classList.add('active');
+                document.getElementById('formVideo').classList.add('active');
+            } else if (tab === 'folder') {
+                document.querySelector('.admin-tab:nth-child(2)').classList.add('active');
+                document.getElementById('formFolder').classList.add('active');
+            } else {
+                document.querySelector('.admin-tab:nth-child(3)').classList.add('active');
+                document.getElementById('formManage').classList.add('active');
+            }
+        }
+
+        function updateFolderSelect() {
+            const select = document.getElementById('videoFolder');
+            select.innerHTML = '<option value="">Root (Tanpa Folder)</option>';
+            data.folders.forEach(f => {
+                select.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+            });
+        }
+
+        // Tambah Video
+        document.getElementById('addVideoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login sebagai admin!', 'error');
+                return;
+            }
+
+            const title = document.getElementById('videoTitle').value.trim();
+            const thumb = document.getElementById('videoThumb').value.trim();
+            const url = document.getElementById('videoUrl').value.trim();
+            const folderId = document.getElementById('videoFolder').value;
+
+            if (!title || !thumb || !url) {
+                showNotification('Semua field harus diisi!', 'error');
+                return;
+            }
+
+            const newVideo = {
+                id: Date.now(),
+                title: title,
+                thumbnail: thumb,
+                url: url
+            };
+
+            if (folderId) {
+                const folder = data.folders.find(f => f.id === folderId);
+                if (folder) {
+                    folder.videos.push(newVideo);
+                    showNotification(`✅ Video "${title}" berhasil ditambahkan ke folder "${folder.name}"`, 'success');
+                }
+            } else {
+                data.rootVideos.push(newVideo);
+                showNotification(`✅ Video "${title}" berhasil ditambahkan ke Root`, 'success');
+            }
+
+            saveData();
+            this.reset();
+            renderCurrentView();
+            if (history.length > 0) {
+                const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                if (currentFolder) {
+                    renderItems(currentFolder.videos, true);
+                }
+            }
+        });
+
+        // Tambah Folder
+        document.getElementById('addFolderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login sebagai admin!', 'error');
+                return;
+            }
+
+            const name = document.getElementById('folderName').value.trim();
+            
+            if (!name) {
+                showNotification('Nama folder harus diisi!', 'error');
+                return;
+            }
+
+            const newFolder = {
+                id: 'folder_' + Date.now(),
+                name: name,
+                videos: []
+            };
+
+            data.folders.push(newFolder);
+            saveData();
+            showNotification(`✅ Folder "${name}" berhasil dibuat!`, 'success');
+            this.reset();
+            renderCurrentView();
+        });
+
+        // Hapus Video
+        function deleteVideo(videoId, isInFolder) {
+            if (!isAdminLoggedIn) return;
+            if (!confirm('Yakin ingin menghapus video ini?')) return;
+
+            if (isInFolder) {
+                const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                if (currentFolder) {
+                    const index = currentFolder.videos.findIndex(v => v.id === videoId);
+                    if (index !== -1) {
+                        currentFolder.videos.splice(index, 1);
+                        showNotification('✅ Video berhasil dihapus dari folder', 'success');
+                    }
+                }
+            } else {
+                const index = data.rootVideos.findIndex(v => v.id === videoId);
+                if (index !== -1) {
+                    data.rootVideos.splice(index, 1);
+                    showNotification('✅ Video berhasil dihapus dari Root', 'success');
+                }
+            }
+
+            saveData();
+            renderCurrentView();
+            if (history.length > 0) {
+                const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                if (currentFolder) {
+                    renderItems(currentFolder.videos, true);
+                }
+            }
+        }
+
+        // Hapus Folder
+        function deleteFolder(folderId) {
+            if (!isAdminLoggedIn) return;
+            if (!confirm('Yakin ingin menghapus folder ini? Semua video di dalamnya akan terhapus!')) return;
+
+            const index = data.folders.findIndex(f => f.id === folderId);
+            if (index !== -1) {
+                const folderName = data.folders[index].name;
+                data.folders.splice(index, 1);
+                showNotification(`✅ Folder "${folderName}" berhasil dihapus`, 'success');
+                saveData();
+                renderCurrentView();
+                if (history.length > 0) {
+                    goHome();
+                }
+            }
+        }
+
+        // ==========================================================
+        // 📦 EXPORT / IMPORT
+        // ==========================================================
+        function exportData() {
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login sebagai admin!', 'error');
+                return;
+            }
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vidoy_data_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('✅ Data berhasil diekspor!', 'success');
+        }
+
+        function importData() {
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login sebagai admin!', 'error');
+                return;
+            }
+            document.getElementById('importFile').click();
+        }
+
+        function importDataFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.folders && importedData.rootVideos) {
+                        data = importedData;
+                        saveData();
+                        renderCurrentView();
+                        showNotification('✅ Data berhasil diimpor!', 'success');
+                    } else {
+                        showNotification('❌ Format file tidak valid!', 'error');
+                    }
+                } catch (err) {
+                    showNotification('❌ Gagal membaca file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ==========================================================
+        // 🔔 NOTIFICATION
+        // ==========================================================
+        function showNotification(message, type = 'success') {
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.innerHTML = message;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.style.opacity = '0';
+                notif.style.transform = 'translateX(100%)';
+                setTimeout(() => notif.remove(), 500);
+            }, 3000);
+        }
+
+        // ==========================================================
+        // 🚀 START
+        // ==========================================================
+        loadData();
+        renderCurrentView();
+
+        console.log('🎬 Vidoy Stream dengan Login Admin siap!');
+        console.log('🔐 Password default: admin123');
+        console.log('💡 Klik tombol Admin → masukkan password untuk mengelola');
+        console.log('💡 Ganti password di menu Kelola → Ganti Password');
+
+        // Cek apakah pernah login sebelumnya (session)
+        // Untuk keamanan, tidak menyimpan session login
+    </script>
+
+</body>
+</html>
