@@ -234,20 +234,6 @@
             cursor: not-allowed;
         }
 
-        .btn-danger {
-            background: #dc2626;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .btn-danger:hover {
-            background: #ef4444;
-        }
-
         .video-grid {
             max-width: 1200px;
             margin: 0 auto;
@@ -294,16 +280,17 @@
             z-index: 10;
             transition: all 0.3s;
             display: none;
+            align-items: center;
+            justify-content: center;
         }
         .video-card .delete-btn:hover {
             transform: scale(1.1);
             background: #ef4444;
         }
+
         .admin-panel.visible ~ .video-grid .video-card .delete-btn,
         .show-delete .video-card .delete-btn {
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .folder-card {
@@ -344,16 +331,17 @@
             z-index: 10;
             transition: all 0.3s;
             display: none;
+            align-items: center;
+            justify-content: center;
         }
         .folder-card .delete-btn:hover {
             transform: scale(1.1);
             background: #ef4444;
         }
+
         .admin-panel.visible ~ .video-grid .folder-card .delete-btn,
         .show-delete .folder-card .delete-btn {
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .folder-card .thumb {
@@ -769,7 +757,7 @@
     <!-- ========== VIDEO GRID ========== -->
     <div id="loadingIndicator" class="loading" style="display:none;">
         <i class="fas fa-spinner"></i><br><br>
-        Memuat data dari cloud...
+        Loading...
     </div>
     <div class="video-grid" id="videoGrid"></div>
 
@@ -822,14 +810,12 @@
                     data = cloudData.videos || { folders: [], rootVideos: [] };
                     return true;
                 } else {
-                    // Jika belum ada data, buat baru
                     await saveToCloud();
                     return true;
                 }
             } catch (error) {
                 console.error('Error loading from cloud:', error);
                 showNotification('❌ Gagal memuat data dari cloud, menggunakan data lokal', 'error');
-                // Coba load dari localStorage sebagai fallback
                 const saved = localStorage.getItem('vidoyData');
                 if (saved) {
                     try {
@@ -846,7 +832,6 @@
 
         async function saveToCloud() {
             try {
-                // Cek apakah data sudah ada
                 const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
                     headers: {
                         'apikey': SUPABASE_KEY,
@@ -857,7 +842,6 @@
                 const exists = await checkResponse.json();
                 
                 if (exists && exists.length > 0) {
-                    // Update
                     const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
                         method: 'PATCH',
                         headers: {
@@ -874,7 +858,6 @@
                     });
                     if (!response.ok) throw new Error('Gagal update data');
                 } else {
-                    // Insert
                     const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}`, {
                         method: 'POST',
                         headers: {
@@ -893,7 +876,6 @@
                     if (!response.ok) throw new Error('Gagal insert data');
                 }
                 
-                // Simpan juga ke localStorage sebagai backup
                 localStorage.setItem('vidoyData', JSON.stringify(data));
                 localStorage.setItem('adminPassword', adminPassword);
                 
@@ -901,7 +883,6 @@
             } catch (error) {
                 console.error('Error saving to cloud:', error);
                 showNotification('❌ Gagal menyimpan ke cloud, disimpan lokal saja', 'error');
-                // Simpan ke localStorage sebagai fallback
                 localStorage.setItem('vidoyData', JSON.stringify(data));
                 localStorage.setItem('adminPassword', adminPassword);
                 return false;
@@ -1216,7 +1197,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
             const newVideo = {
-                id: Date.now(),
+                id: 'vid_' + Date.now(),
                 title: title,
                 thumbnail: thumb,
                 url: url
@@ -1278,54 +1259,104 @@
             btn.innerHTML = '<i class="fas fa-folder-plus"></i> Buat Folder';
         });
 
-        // Hapus Video
+        // ==========================================================
+        // 🗑️ DELETE FUNCTIONS - DIPERBAIKI!
+        // ==========================================================
         async function deleteVideo(videoId, isInFolder) {
-            if (!isAdminLoggedIn) return;
-            if (!confirm('Yakin ingin menghapus video ini?')) return;
-
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login sebagai admin!', 'error');
+                return;
+            }
+            
+            // Cari judul video untuk konfirmasi
+            let videoTitle = '';
             if (isInFolder) {
                 const currentFolder = data.folders.find(f => f.name === currentFolderName);
                 if (currentFolder) {
-                    const index = currentFolder.videos.findIndex(v => v.id === videoId);
-                    if (index !== -1) {
-                        currentFolder.videos.splice(index, 1);
-                    }
+                    const video = currentFolder.videos.find(v => v.id === videoId);
+                    if (video) videoTitle = video.title;
                 }
             } else {
-                const index = data.rootVideos.findIndex(v => v.id === videoId);
-                if (index !== -1) {
-                    data.rootVideos.splice(index, 1);
-                }
+                const video = data.rootVideos.find(v => v.id === videoId);
+                if (video) videoTitle = video.title;
             }
+            
+            if (!confirm(`Yakin ingin menghapus video "${videoTitle || 'ini'}"?`)) return;
 
-            await saveToCloud();
-            showNotification('✅ Video berhasil dihapus', 'success');
-            renderCurrentView();
-            updateFolderSelect();
-            if (history.length > 0) {
-                const currentFolder = data.folders.find(f => f.name === currentFolderName);
-                if (currentFolder) {
-                    renderItems(currentFolder.videos, true);
+            try {
+                if (isInFolder) {
+                    const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                    if (currentFolder) {
+                        const index = currentFolder.videos.findIndex(v => v.id === videoId);
+                        if (index !== -1) {
+                            currentFolder.videos.splice(index, 1);
+                            showNotification(`✅ Video "${videoTitle}" berhasil dihapus dari folder`, 'success');
+                        } else {
+                            showNotification('❌ Video tidak ditemukan!', 'error');
+                            return;
+                        }
+                    } else {
+                        showNotification('❌ Folder tidak ditemukan!', 'error');
+                        return;
+                    }
+                } else {
+                    const index = data.rootVideos.findIndex(v => v.id === videoId);
+                    if (index !== -1) {
+                        data.rootVideos.splice(index, 1);
+                        showNotification(`✅ Video "${videoTitle}" berhasil dihapus dari Root`, 'success');
+                    } else {
+                        showNotification('❌ Video tidak ditemukan!', 'error');
+                        return;
+                    }
                 }
+
+                await saveToCloud();
+                renderCurrentView();
+                updateFolderSelect();
+                
+                // Refresh view folder jika sedang di folder
+                if (history.length > 0) {
+                    const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                    if (currentFolder) {
+                        renderItems(currentFolder.videos, true);
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting video:', error);
+                showNotification('❌ Gagal menghapus video!', 'error');
             }
         }
 
-        // Hapus Folder
         async function deleteFolder(folderId) {
-            if (!isAdminLoggedIn) return;
-            if (!confirm('Yakin ingin menghapus folder ini? Semua video di dalamnya akan terhapus!')) return;
+            if (!isAdminLoggedIn) {
+                showNotification('❌ Anda harus login sebagai admin!', 'error');
+                return;
+            }
+            
+            const folder = data.folders.find(f => f.id === folderId);
+            if (!folder) {
+                showNotification('❌ Folder tidak ditemukan!', 'error');
+                return;
+            }
+            
+            if (!confirm(`Yakin ingin menghapus folder "${folder.name}"? Semua video di dalamnya (${folder.videos.length} video) akan terhapus!`)) return;
 
-            const index = data.folders.findIndex(f => f.id === folderId);
-            if (index !== -1) {
-                const folderName = data.folders[index].name;
-                data.folders.splice(index, 1);
-                await saveToCloud();
-                showNotification(`✅ Folder "${folderName}" berhasil dihapus`, 'success');
-                renderCurrentView();
-                updateFolderSelect();
-                if (history.length > 0) {
-                    goHome();
+            try {
+                const index = data.folders.findIndex(f => f.id === folderId);
+                if (index !== -1) {
+                    const folderName = data.folders[index].name;
+                    data.folders.splice(index, 1);
+                    await saveToCloud();
+                    showNotification(`✅ Folder "${folderName}" berhasil dihapus`, 'success');
+                    renderCurrentView();
+                    updateFolderSelect();
+                    if (history.length > 0) {
+                        goHome();
+                    }
                 }
+            } catch (error) {
+                console.error('Error deleting folder:', error);
+                showNotification('❌ Gagal menghapus folder!', 'error');
             }
         }
 
@@ -1410,6 +1441,7 @@
             console.log('💡 Klik tombol Admin → masukkan password untuk mengelola');
             console.log('☁️ Data tersimpan di cloud Supabase');
             console.log('📱 Semua perangkat pakai data yang sama!');
+            console.log('🗑️ Video di root sekarang bisa dihapus!');
         }
 
         init();
