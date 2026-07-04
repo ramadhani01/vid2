@@ -26,85 +26,100 @@
         .breadcrumb span { color: #f59b00; }
         .breadcrumb i { margin: 0 8px; font-size: 12px; }
 
-        /* -- BANNED SECTION -- */
-        .banned-section {
+        /* -- BANNER CARD (seperti video card tapi besar di atas) -- */
+        .banner-card {
             max-width: 1200px;
             margin: 0 auto 20px;
             background: #141414;
             border: 1px solid #2a2a2a;
             border-radius: 12px;
-            padding: 16px 24px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            overflow: hidden;
             cursor: pointer;
-            transition: border-color 0.3s;
-        }
-        .banned-section:hover { border-color: #f59b00; }
-        .banned-section .banned-left {
+            transition: all 0.3s;
             display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
+            flex-direction: column;
         }
-        .banned-section .banned-left .icon { font-size: 20px; color: #ef4444; }
-        .banned-section .banned-left .count {
-            background: #ef4444;
-            color: white;
-            border-radius: 20px;
-            padding: 2px 14px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-        .banned-section .banned-left .label {
-            color: #888;
-            font-size: 13px;
-        }
-        .banned-section .banned-thumb {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .banned-section .banned-thumb img {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 1px solid #2a2a2a;
-        }
-        .banned-section .banned-thumb .placeholder {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
-            background: #1a1a1a;
-            border: 1px dashed #444;
+        .banner-card:hover { border-color: #f59b00; box-shadow: 0 8px 30px rgba(245, 155, 0, 0.1); }
+        .banner-card .banner-thumb {
+            width: 100%;
+            aspect-ratio: 16/5;
+            background: #0a0a0a;
+            overflow: hidden;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #555;
-            font-size: 16px;
         }
-        .banned-section .banned-thumb .banned-edit-btn {
+        .banner-card .banner-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .banner-card .banner-thumb .placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+            color: #555;
+            font-size: 40px;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .banner-card .banner-thumb .placeholder i { font-size: 48px; color: #2a2a2a; }
+        .banner-card .banner-info {
+            padding: 16px 24px;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .banner-card .banner-info .banner-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .banner-card .banner-info .banner-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+        }
+        .banner-card .banner-info .banner-bought {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f59b00;
+            color: #0a0a0a;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .banner-card .banner-info .banner-bought i { font-size: 14px; }
+        .banner-card .banner-info .banner-edit-btn {
             background: transparent;
             border: 1px solid #f59b00;
             color: #f59b00;
-            padding: 5px 14px;
+            padding: 6px 18px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             transition: all 0.3s;
             display: none;
         }
-        .banned-section .banned-thumb .banned-edit-btn:hover {
+        .banner-card .banner-info .banner-edit-btn:hover {
             background: #f59b00;
             color: #0a0a0a;
         }
-        .banned-section .banned-thumb .banned-edit-btn.visible { display: inline-block; }
+        .banner-card .banner-info .banner-edit-btn.visible { display: inline-block; }
 
-        /* -- BANNED ADMIN EDITOR -- */
-        .banned-admin-panel {
+        /* -- BANNER ADMIN EDITOR -- */
+        .banner-admin-panel {
             max-width: 1200px;
             margin: 0 auto 20px;
             background: #141414;
@@ -113,12 +128,13 @@
             padding: 20px;
             display: none;
         }
-        .banned-admin-panel.visible { display: block; }
-        .banned-admin-panel h3 { color: #f59b00; margin-bottom: 16px; }
-        .banned-admin-panel .form-group { margin-bottom: 16px; }
-        .banned-admin-panel .form-group label { color: #aaa; display: block; margin-bottom: 4px; font-size: 13px; }
-        .banned-admin-panel .form-group input[type="number"],
-        .banned-admin-panel .form-group input[type="url"] {
+        .banner-admin-panel.visible { display: block; }
+        .banner-admin-panel h3 { color: #f59b00; margin-bottom: 16px; }
+        .banner-admin-panel .form-group { margin-bottom: 16px; }
+        .banner-admin-panel .form-group label { color: #aaa; display: block; margin-bottom: 4px; font-size: 13px; }
+        .banner-admin-panel .form-group input[type="number"],
+        .banner-admin-panel .form-group input[type="url"],
+        .banner-admin-panel .form-group input[type="text"] {
             width: 100%;
             padding: 10px 14px;
             background: #0a0a0a;
@@ -126,8 +142,8 @@
             border-radius: 8px;
             color: white;
         }
-        .banned-admin-panel .form-group input:focus { border-color: #f59b00; outline: none; }
-        .banned-admin-panel .btn-save-banned {
+        .banner-admin-panel .form-group input:focus { border-color: #f59b00; outline: none; }
+        .banner-admin-panel .btn-save-banner {
             background: #f59b00;
             color: #0a0a0a;
             border: none;
@@ -137,8 +153,8 @@
             font-weight: bold;
             transition: all 0.3s;
         }
-        .banned-admin-panel .btn-save-banned:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245, 155, 0, 0.3); }
-        .banned-admin-panel .btn-cancel-banned {
+        .banner-admin-panel .btn-save-banner:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245, 155, 0, 0.3); }
+        .banner-admin-panel .btn-cancel-banner {
             background: #2a2a2a;
             color: white;
             border: none;
@@ -148,14 +164,14 @@
             margin-left: 10px;
             transition: all 0.3s;
         }
-        .banned-admin-panel .btn-cancel-banned:hover { background: #3a3a3a; }
-        .banned-admin-panel .row {
+        .banner-admin-panel .btn-cancel-banner:hover { background: #3a3a3a; }
+        .banner-admin-panel .row {
             display: flex;
             flex-wrap: wrap;
             gap: 16px;
             align-items: flex-end;
         }
-        .banned-admin-panel .row .form-group { flex: 1 1 200px; min-width: 150px; }
+        .banner-admin-panel .row .form-group { flex: 1 1 200px; min-width: 150px; }
 
         /* -- ADMIN PANEL -- */
         .admin-panel { max-width: 1200px; margin: 0 auto 30px; background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; display: none; }
@@ -184,7 +200,6 @@
         .video-card .delete-btn:hover { transform: scale(1.1); background: #ef4444; }
         .admin-panel.visible ~ .video-grid .video-card .delete-btn,
         .show-delete .video-card .delete-btn { display: flex; }
-        
         .folder-card { background: #141414; border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.3s; border: 2px solid #2a2a2a; text-decoration: none; display: block; color: white; position: relative; }
         .folder-card:hover { transform: translateY(-5px) scale(1.02); border-color: #f59b00; box-shadow: 0 8px 30px rgba(245, 155, 0, 0.2); }
         .folder-card .delete-btn { position: absolute; top: 8px; right: 8px; background: rgba(220, 38, 38, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 12px; z-index: 10; transition: all 0.3s; display: none; align-items: center; justify-content: center; }
@@ -197,15 +212,12 @@
         .folder-card .info { padding: 12px 14px; background: #1a1a1a; }
         .folder-card .info h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f59b00; }
         .folder-card .info small { color: #555; font-size: 11px; }
-        
         .video-card .thumb { width: 100%; aspect-ratio: 16/9; background: #0a0a0a; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
         .video-card .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; transition: 0.4s; background: #0a0a0a; }
         .video-card:hover .thumb img { transform: scale(1.02); }
-        /* Tombol play dihilangkan */
         .video-card .thumb .play-icon { display: none; }
         .video-card .info { padding: 12px 14px; }
         .video-card .info h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; }
-        
         .footer { max-width: 1200px; margin: 30px auto 0; text-align: center; padding: 20px 0 10px; border-top: 1px solid #1a1a1a; color: #333; font-size: 13px; }
         .footer i { color: #ef4444; }
         .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
@@ -226,7 +238,7 @@
         .loading { text-align: center; padding: 60px 20px; color: #f59b00; }
         .loading i { font-size: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 600px) { body { padding: 12px; } .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; } .logo { font-size: 22px; } .header { flex-direction: column; align-items: flex-start; } .header-right { width: 100%; justify-content: space-between; } .admin-panel { padding: 16px; } .admin-tabs { flex-wrap: wrap; } .modal-box { padding: 24px; } }
+        @media (max-width: 600px) { body { padding: 12px; } .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; } .logo { font-size: 22px; } .header { flex-direction: column; align-items: flex-start; } .header-right { width: 100%; justify-content: space-between; } .admin-panel { padding: 16px; } .admin-tabs { flex-wrap: wrap; } .modal-box { padding: 24px; } .banner-card .banner-thumb { aspect-ratio: 16/6; } .banner-card .banner-info .banner-title { font-size: 15px; } }
         @media (max-width: 400px) { .video-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; } .video-card .info { padding: 8px 10px; } .video-card .info h3 { font-size: 12px; } }
     </style>
 </head>
@@ -274,50 +286,58 @@
         <i class="fas fa-folder"></i> <span id="currentFolder">Root</span>
     </div>
 
-    <!-- ===== BANNED SECTION ===== -->
-    <div class="banned-section" id="bannedSection">
-        <div class="banned-left">
-            <span class="icon"><i class="fas fa-user-slash"></i></span>
-            <span class="count" id="bannedCount">0</span>
-            <span class="label">orang telah dibanned</span>
+    <!-- ===== BANNER CARD (seperti video card, thumbnail besar, judul, keranjang beli) ===== -->
+    <div class="banner-card" id="bannerCard">
+        <div class="banner-thumb" id="bannerThumb">
+            <img id="bannerThumbImg" src="" alt="Banner" style="display:none;">
+            <div class="placeholder" id="bannerPlaceholder">
+                <i class="fas fa-image"></i>
+                <span style="font-size:14px; color:#444;">Belum ada thumbnail</span>
+            </div>
         </div>
-        <div class="banned-thumb">
-            <img id="bannedThumbImg" src="" alt="Banned thumb" style="display:none;">
-            <div class="placeholder" id="bannedThumbPlaceholder"><i class="fas fa-user-slash"></i></div>
-            <button class="banned-edit-btn" id="bannedEditBtn" onclick="toggleBannedEditor()">
+        <div class="banner-info">
+            <div class="banner-left">
+                <span class="banner-title" id="bannerTitle">Product</span>
+                <span class="banner-bought"><i class="fas fa-shopping-cart"></i> <span id="bannerBought">0</span> dibeli</span>
+            </div>
+            <button class="banner-edit-btn" id="bannerEditBtn" onclick="toggleBannerEditor()">
                 <i class="fas fa-pen"></i> Edit
             </button>
         </div>
     </div>
 
-    <!-- ===== BANNED ADMIN EDITOR ===== -->
-    <div class="banned-admin-panel" id="bannedEditorPanel">
-        <h3><i class="fas fa-edit"></i> Edit Info Banned</h3>
-        <form id="bannedForm">
+    <!-- ===== BANNER ADMIN EDITOR ===== -->
+    <div class="banner-admin-panel" id="bannerEditorPanel">
+        <h3><i class="fas fa-edit"></i> Edit Banner</h3>
+        <form id="bannerForm">
             <div class="row">
                 <div class="form-group">
-                    <label>Jumlah Banned</label>
-                    <input type="number" id="bannedCountInput" min="0" value="0">
+                    <label>Judul</label>
+                    <input type="text" id="bannerTitleInput" placeholder="Judul banner" value="Product">
+                </div>
+                <div class="form-group">
+                    <label>Jumlah Dibeli</label>
+                    <input type="number" id="bannerBoughtInput" min="0" value="0">
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail</label>
-                    <input type="url" id="bannedThumbInput" placeholder="https://example.com/thumb.jpg">
+                    <input type="url" id="bannerThumbInput" placeholder="https://example.com/thumb.jpg">
                 </div>
                 <div class="form-group">
                     <label>URL Tujuan (saat diklik)</label>
-                    <input type="url" id="bannedLinkInput" placeholder="https://example.com/tujuan">
+                    <input type="url" id="bannerLinkInput" placeholder="https://example.com/tujuan">
                 </div>
                 <div class="form-group" style="flex:0 0 auto;">
                     <label>&nbsp;</label>
                     <div>
-                        <button type="submit" class="btn-save-banned"><i class="fas fa-save"></i> Simpan</button>
-                        <button type="button" class="btn-cancel-banned" onclick="toggleBannedEditor()">Batal</button>
+                        <button type="submit" class="btn-save-banner"><i class="fas fa-save"></i> Simpan</button>
+                        <button type="button" class="btn-cancel-banner" onclick="toggleBannerEditor()">Batal</button>
                     </div>
                 </div>
             </div>
         </form>
         <div style="margin-top:10px; color:#555; font-size:13px;">
-            <i class="fas fa-info-circle"></i> Thumbnail akan tampil di bagian atas halaman. Klik thumbnail untuk menuju link tujuan.
+            <i class="fas fa-info-circle"></i> Klik banner untuk menuju link tujuan.
         </div>
     </div>
 
@@ -416,8 +436,9 @@
         let data = {
             folders: [],
             rootVideos: [],
-            banned: {
-                count: 0,
+            banner: {
+                title: 'Product',
+                bought: 0,
                 thumbnail: '',
                 link: ''
             }
@@ -439,8 +460,8 @@
                 if (result && result.length > 0) {
                     const cloudData = result[0];
                     adminPassword = cloudData.password || 'admin123';
-                    data = cloudData.videos || { folders: [], rootVideos: [], banned: { count: 0, thumbnail: '', link: '' } };
-                    if (!data.banned) data.banned = { count: 0, thumbnail: '', link: '' };
+                    data = cloudData.videos || { folders: [], rootVideos: [], banner: { title: 'Product', bought: 0, thumbnail: '', link: '' } };
+                    if (!data.banner) data.banner = { title: 'Product', bought: 0, thumbnail: '', link: '' };
                 } else {
                     await saveToCloud();
                 }
@@ -452,7 +473,7 @@
                     try {
                         const parsed = JSON.parse(saved);
                         data = parsed;
-                        if (!data.banned) data.banned = { count: 0, thumbnail: '', link: '' };
+                        if (!data.banner) data.banner = { title: 'Product', bought: 0, thumbnail: '', link: '' };
                     } catch (e) {}
                 }
                 return false;
@@ -508,7 +529,7 @@
             await loadFromCloud();
             renderCurrentView();
             updateFolderSelect();
-            updateBannedDisplay();
+            updateBannerDisplay();
             showNotification('✅ Sinkronisasi selesai!', 'success');
         }
 
@@ -532,12 +553,12 @@
                 btn.innerHTML = '<i class="fas fa-times"></i> Tutup';
                 updateFolderSelect();
                 renderCurrentView();
-                updateBannedDisplay();
-                document.querySelector('.banned-edit-btn').classList.add('visible');
+                updateBannerDisplay();
+                document.querySelector('.banner-edit-btn').classList.add('visible');
             } else {
                 btn.innerHTML = '<i class="fas fa-cog"></i> Admin';
                 renderCurrentView();
-                document.querySelector('.banned-edit-btn').classList.remove('visible');
+                document.querySelector('.banner-edit-btn').classList.remove('visible');
             }
         }
 
@@ -554,8 +575,8 @@
                 document.getElementById('adminToggle').innerHTML = '<i class="fas fa-times"></i> Tutup';
                 updateFolderSelect();
                 renderCurrentView();
-                updateBannedDisplay();
-                document.querySelector('.banned-edit-btn').classList.add('visible');
+                updateBannerDisplay();
+                document.querySelector('.banner-edit-btn').classList.add('visible');
             } else {
                 document.getElementById('loginError').classList.add('visible');
                 document.getElementById('adminPassword').value = '';
@@ -693,28 +714,30 @@
         }
 
         // ==========================================================
-        // BANNED DISPLAY
+        // BANNER DISPLAY
         // ==========================================================
-        function updateBannedDisplay() {
-            const banned = data.banned || { count: 0, thumbnail: '', link: '' };
-            document.getElementById('bannedCount').textContent = banned.count || 0;
-            const thumbImg = document.getElementById('bannedThumbImg');
-            const placeholder = document.getElementById('bannedThumbPlaceholder');
-            const section = document.getElementById('bannedSection');
+        function updateBannerDisplay() {
+            const banner = data.banner || { title: 'Product', bought: 0, thumbnail: '', link: '' };
+            document.getElementById('bannerTitle').textContent = banner.title || 'Product';
+            document.getElementById('bannerBought').textContent = (banner.bought || 0);
+            
+            const thumbImg = document.getElementById('bannerThumbImg');
+            const placeholder = document.getElementById('bannerPlaceholder');
+            const card = document.getElementById('bannerCard');
 
-            if (banned.thumbnail && banned.thumbnail.trim() !== '') {
-                thumbImg.src = banned.thumbnail;
+            if (banner.thumbnail && banner.thumbnail.trim() !== '') {
+                thumbImg.src = banner.thumbnail;
                 thumbImg.style.display = 'block';
                 placeholder.style.display = 'none';
-                if (banned.link && banned.link.trim() !== '') {
-                    section.style.cursor = 'pointer';
-                    section.onclick = function(e) {
-                        if (e.target.closest('.banned-edit-btn')) return;
-                        window.open(banned.link, '_blank');
+                if (banner.link && banner.link.trim() !== '') {
+                    card.style.cursor = 'pointer';
+                    card.onclick = function(e) {
+                        if (e.target.closest('.banner-edit-btn')) return;
+                        window.open(banner.link, '_blank');
                     };
                 } else {
-                    section.style.cursor = 'default';
-                    section.onclick = null;
+                    card.style.cursor = 'default';
+                    card.onclick = null;
                 }
                 thumbImg.onerror = function() {
                     this.style.display = 'none';
@@ -723,34 +746,36 @@
             } else {
                 thumbImg.style.display = 'none';
                 placeholder.style.display = 'flex';
-                section.style.cursor = 'default';
-                section.onclick = null;
+                card.style.cursor = 'default';
+                card.onclick = null;
             }
 
-            document.getElementById('bannedCountInput').value = banned.count || 0;
-            document.getElementById('bannedThumbInput').value = banned.thumbnail || '';
-            document.getElementById('bannedLinkInput').value = banned.link || '';
+            document.getElementById('bannerTitleInput').value = banner.title || '';
+            document.getElementById('bannerBoughtInput').value = banner.bought || 0;
+            document.getElementById('bannerThumbInput').value = banner.thumbnail || '';
+            document.getElementById('bannerLinkInput').value = banner.link || '';
         }
 
-        function toggleBannedEditor() {
+        function toggleBannerEditor() {
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
-            const panel = document.getElementById('bannedEditorPanel');
+            const panel = document.getElementById('bannerEditorPanel');
             panel.classList.toggle('visible');
-            if (panel.classList.contains('visible')) updateBannedDisplay();
+            if (panel.classList.contains('visible')) updateBannerDisplay();
         }
 
-        document.getElementById('bannedForm').addEventListener('submit', async function(e) {
+        document.getElementById('bannerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
-            const count = parseInt(document.getElementById('bannedCountInput').value) || 0;
-            const thumb = document.getElementById('bannedThumbInput').value.trim();
-            const link = document.getElementById('bannedLinkInput').value.trim();
+            const title = document.getElementById('bannerTitleInput').value.trim() || 'Product';
+            const bought = parseInt(document.getElementById('bannerBoughtInput').value) || 0;
+            const thumb = document.getElementById('bannerThumbInput').value.trim();
+            const link = document.getElementById('bannerLinkInput').value.trim();
 
-            data.banned = { count, thumbnail: thumb, link };
+            data.banner = { title, bought, thumbnail: thumb, link };
             await saveToCloud();
-            updateBannedDisplay();
-            toggleBannedEditor();
-            showNotification('✅ Info Banned berhasil diperbarui!', 'success');
+            updateBannerDisplay();
+            toggleBannerEditor();
+            showNotification('✅ Banner berhasil diperbarui!', 'success');
         });
 
         // ==========================================================
@@ -806,7 +831,7 @@
             this.reset();
             renderCurrentView();
             updateFolderSelect();
-            updateBannedDisplay();
+            updateBannerDisplay();
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-plus"></i> Tambahkan Video';
         });
@@ -827,7 +852,7 @@
             this.reset();
             renderCurrentView();
             updateFolderSelect();
-            updateBannedDisplay();
+            updateBannerDisplay();
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-folder-plus"></i> Buat Folder';
         });
@@ -866,7 +891,7 @@
                 await saveToCloud();
                 renderCurrentView();
                 updateFolderSelect();
-                updateBannedDisplay();
+                updateBannerDisplay();
                 if (history.length > 0) {
                     const currentFolder = data.folders.find(f => f.name === currentFolderName);
                     if (currentFolder) renderItems(currentFolder.videos, true);
@@ -892,7 +917,7 @@
                     showNotification(`✅ Folder "${folderName}" berhasil dihapus`, 'success');
                     renderCurrentView();
                     updateFolderSelect();
-                    updateBannedDisplay();
+                    updateBannerDisplay();
                     if (history.length > 0) goHome();
                 }
             } catch (error) {
@@ -930,11 +955,11 @@
                     const importedData = JSON.parse(e.target.result);
                     if (importedData.folders && importedData.rootVideos) {
                         data = importedData;
-                        if (!data.banned) data.banned = { count: 0, thumbnail: '', link: '' };
+                        if (!data.banner) data.banner = { title: 'Product', bought: 0, thumbnail: '', link: '' };
                         await saveToCloud();
                         renderCurrentView();
                         updateFolderSelect();
-                        updateBannedDisplay();
+                        updateBannerDisplay();
                         showNotification('✅ Data berhasil diimpor!', 'success');
                     } else {
                         showNotification('❌ Format file tidak valid!', 'error');
@@ -966,8 +991,8 @@
             await loadFromCloud();
             renderCurrentView();
             updateFolderSelect();
-            updateBannedDisplay();
-            document.querySelector('.banned-edit-btn').classList.remove('visible');
+            updateBannerDisplay();
+            document.querySelector('.banner-edit-btn').classList.remove('visible');
             console.log('🎬 Vidoy Stream siap!');
             console.log('🔐 Password default: admin123');
         }
