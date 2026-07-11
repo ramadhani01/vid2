@@ -6,6 +6,8 @@
     <title>Vidoy Stream</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Drag and Drop Library -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #0a0a0a; color: white; min-height: 100vh; padding: 20px; }
@@ -80,14 +82,23 @@
         }
         .banner-card .banner-info .banner-left {
             display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
         }
         .banner-card .banner-info .banner-title {
             font-size: 18px;
             font-weight: 600;
             color: white;
+        }
+        .banner-card .banner-info .banner-desc {
+            font-size: 13px;
+            color: #888;
+        }
+        .banner-card .banner-info .banner-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         .banner-card .banner-info .banner-bought {
             display: flex;
@@ -99,6 +110,7 @@
             border-radius: 20px;
             font-size: 14px;
             font-weight: bold;
+            white-space: nowrap;
         }
         .banner-card .banner-info .banner-bought i { font-size: 14px; }
         .banner-card .banner-info .banner-edit-btn {
@@ -165,6 +177,18 @@
             transition: all 0.3s;
         }
         .banner-admin-panel .btn-cancel-banner:hover { background: #3a3a3a; }
+        .banner-admin-panel .btn-create-banner {
+            background: #22c55e;
+            color: #0a0a0a;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        .banner-admin-panel .btn-create-banner:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(34, 197, 94, 0.3); }
         .banner-admin-panel .row {
             display: flex;
             flex-wrap: wrap;
@@ -192,6 +216,25 @@
         .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245, 155, 0, 0.3); }
         .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* Sortable drag handle */
+        .drag-handle {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            color: #666;
+            cursor: grab;
+            z-index: 10;
+            font-size: 16px;
+            display: none;
+            padding: 4px 8px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+        .drag-handle:hover { color: #f59b00; }
+        .admin-panel.visible ~ .video-grid .drag-handle,
+        .show-delete .drag-handle { display: block; }
+        .sortable-chosen .drag-handle { cursor: grabbing; }
+
         /* -- VIDEO GRID -- */
         .video-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
         .video-card { background: #141414; border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.3s; border: 1px solid #1f1f1f; text-decoration: none; display: block; color: white; position: relative; }
@@ -207,8 +250,38 @@
         .admin-panel.visible ~ .video-grid .folder-card .delete-btn,
         .show-delete .folder-card .delete-btn { display: flex; }
         .folder-card .thumb { width: 100%; aspect-ratio: 16/9; background: linear-gradient(135deg, #1a1a2e, #16213e); overflow: hidden; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-        .folder-card .thumb i { font-size: 60px; color: #f59b00; opacity: 0.8; }
-        .folder-card .thumb .folder-count { background: rgba(245, 155, 0, 0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; color: #f59b00; border: 1px solid rgba(245, 155, 0, 0.3); }
+        .folder-card .thumb img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .folder-card .thumb .folder-icon-overlay {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .folder-card .thumb .folder-icon-overlay i { 
+            font-size: 60px; 
+            color: #f59b00; 
+            opacity: 0.9;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .folder-card .thumb .folder-count { 
+            background: rgba(245, 155, 0, 0.2); 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            color: #f59b00; 
+            border: 1px solid rgba(245, 155, 0, 0.3);
+            position: relative;
+            z-index: 2;
+        }
         .folder-card .info { padding: 12px 14px; background: #1a1a1a; }
         .folder-card .info h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f59b00; }
         .folder-card .info small { color: #555; font-size: 11px; }
@@ -286,7 +359,7 @@
         <i class="fas fa-folder"></i> <span id="currentFolder">Root</span>
     </div>
 
-    <!-- ===== BANNER CARD (seperti video card, thumbnail besar, judul, keranjang beli) ===== -->
+    <!-- ===== BANNER CARD (seperti video card tapi besar di atas) ===== -->
     <div class="banner-card" id="bannerCard">
         <div class="banner-thumb" id="bannerThumb">
             <img id="bannerThumbImg" src="" alt="Banner" style="display:none;">
@@ -298,11 +371,14 @@
         <div class="banner-info">
             <div class="banner-left">
                 <span class="banner-title" id="bannerTitle">Product</span>
-                <span class="banner-bought"><i class="fas fa-shopping-cart"></i> <span id="bannerBought">0</span> dibeli</span>
+                <span class="banner-desc" id="bannerDesc">Deskripsi banner di sini</span>
             </div>
-            <button class="banner-edit-btn" id="bannerEditBtn" onclick="toggleBannerEditor()">
-                <i class="fas fa-pen"></i> Edit
-            </button>
+            <div class="banner-right">
+                <span class="banner-bought"><i class="fas fa-shopping-cart"></i> <span id="bannerBought">0</span> dibeli</span>
+                <button class="banner-edit-btn" id="bannerEditBtn" onclick="toggleBannerEditor()">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+            </div>
         </div>
     </div>
 
@@ -314,6 +390,10 @@
                 <div class="form-group">
                     <label>Judul</label>
                     <input type="text" id="bannerTitleInput" placeholder="Judul banner" value="Product">
+                </div>
+                <div class="form-group">
+                    <label>Deskripsi</label>
+                    <input type="text" id="bannerDescInput" placeholder="Deskripsi banner">
                 </div>
                 <div class="form-group">
                     <label>Jumlah Dibeli</label>
@@ -330,6 +410,9 @@
                 <div class="form-group" style="flex:0 0 auto;">
                     <label>&nbsp;</label>
                     <div>
+                        <button type="button" class="btn-create-banner" onclick="createNewBanner()">
+                            <i class="fas fa-plus"></i> Banner Baru
+                        </button>
                         <button type="submit" class="btn-save-banner"><i class="fas fa-save"></i> Simpan</button>
                         <button type="button" class="btn-cancel-banner" onclick="toggleBannerEditor()">Batal</button>
                     </div>
@@ -386,6 +469,10 @@
                     <label>Nama Folder</label>
                     <input type="text" id="folderName" placeholder="Misal: Hot Collection" required>
                 </div>
+                <div class="form-group">
+                    <label>URL Thumbnail (Opsional)</label>
+                    <input type="url" id="folderThumb" placeholder="https://example.com/folder-thumb.jpg">
+                </div>
                 <button type="submit" class="btn-submit" id="btnAddFolder">
                     <i class="fas fa-folder-plus"></i> Buat Folder
                 </button>
@@ -396,6 +483,9 @@
         <div class="admin-form" id="formManage">
             <h3 style="color: #f59b00; margin-bottom: 15px;">Kelola Konten</h3>
             <p style="color: #555; margin-bottom: 15px;">Hapus item dengan mengklik tombol <span style="color: #ef4444;">✕</span> pada kartu</p>
+            <p style="color: #888; margin-bottom: 15px; font-size: 13px;">
+                <i class="fas fa-arrows-alt"></i> Seret kartu untuk mengatur ulang urutan
+            </p>
             <button onclick="exportData()" class="btn-submit" style="background: #22c55e; margin-right: 10px; margin-bottom: 10px;">
                 <i class="fas fa-download"></i> Export Data
             </button>
@@ -438,12 +528,14 @@
             rootVideos: [],
             banner: {
                 title: 'Product',
+                desc: 'Deskripsi banner di sini',
                 bought: 0,
                 thumbnail: '',
                 link: ''
             }
         };
         let isLoading = false;
+        let sortableInstance = null;
 
         // ==========================================================
         // SUPABASE FUNCTIONS
@@ -460,8 +552,11 @@
                 if (result && result.length > 0) {
                     const cloudData = result[0];
                     adminPassword = cloudData.password || 'admin123';
-                    data = cloudData.videos || { folders: [], rootVideos: [], banner: { title: 'Product', bought: 0, thumbnail: '', link: '' } };
-                    if (!data.banner) data.banner = { title: 'Product', bought: 0, thumbnail: '', link: '' };
+                    data = cloudData.videos || { folders: [], rootVideos: [], banner: { title: 'Product', desc: 'Deskripsi banner di sini', bought: 0, thumbnail: '', link: '' } };
+                    if (!data.banner) data.banner = { title: 'Product', desc: 'Deskripsi banner di sini', bought: 0, thumbnail: '', link: '' };
+                    if (!data.banner.desc) data.banner.desc = 'Deskripsi banner di sini';
+                    // Pastikan folder punya thumbnail
+                    data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
                 } else {
                     await saveToCloud();
                 }
@@ -473,7 +568,9 @@
                     try {
                         const parsed = JSON.parse(saved);
                         data = parsed;
-                        if (!data.banner) data.banner = { title: 'Product', bought: 0, thumbnail: '', link: '' };
+                        if (!data.banner) data.banner = { title: 'Product', desc: 'Deskripsi banner di sini', bought: 0, thumbnail: '', link: '' };
+                        if (!data.banner.desc) data.banner.desc = 'Deskripsi banner di sini';
+                        data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
                     } catch (e) {}
                 }
                 return false;
@@ -555,10 +652,12 @@
                 renderCurrentView();
                 updateBannerDisplay();
                 document.querySelector('.banner-edit-btn').classList.add('visible');
+                initSortable();
             } else {
                 btn.innerHTML = '<i class="fas fa-cog"></i> Admin';
                 renderCurrentView();
                 document.querySelector('.banner-edit-btn').classList.remove('visible');
+                destroySortable();
             }
         }
 
@@ -577,6 +676,7 @@
                 renderCurrentView();
                 updateBannerDisplay();
                 document.querySelector('.banner-edit-btn').classList.add('visible');
+                initSortable();
             } else {
                 document.getElementById('loginError').classList.add('visible');
                 document.getElementById('adminPassword').value = '';
@@ -602,6 +702,64 @@
         }
 
         // ==========================================================
+        // SORTABLE DRAG & DROP
+        // ==========================================================
+        function initSortable() {
+            destroySortable();
+            const grid = document.getElementById('videoGrid');
+            if (!grid) return;
+            
+            sortableInstance = Sortable.create(grid, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: async function(evt) {
+                    const items = Array.from(grid.children);
+                    const itemIds = items.map(el => el.dataset.id);
+                    
+                    // Reorder rootVideos
+                    const newRootVideos = [];
+                    const newFolders = [];
+                    
+                    itemIds.forEach(id => {
+                        const foundVideo = data.rootVideos.find(v => v.id === id);
+                        if (foundVideo) {
+                            newRootVideos.push(foundVideo);
+                            return;
+                        }
+                        const foundFolder = data.folders.find(f => f.id === id);
+                        if (foundFolder) {
+                            newFolders.push(foundFolder);
+                        }
+                    });
+                    
+                    // Tambahkan folder yang mungkin tidak ada di urutan
+                    data.folders.forEach(f => {
+                        if (!newFolders.find(nf => nf.id === f.id)) {
+                            newFolders.push(f);
+                        }
+                    });
+                    data.rootVideos.forEach(v => {
+                        if (!newRootVideos.find(nv => nv.id === v.id)) {
+                            newRootVideos.push(v);
+                        }
+                    });
+                    
+                    data.rootVideos = newRootVideos;
+                    data.folders = newFolders;
+                    await saveToCloud();
+                    showNotification('✅ Urutan berhasil diperbarui!', 'success');
+                }
+            });
+        }
+
+        function destroySortable() {
+            if (sortableInstance) {
+                sortableInstance.destroy();
+                sortableInstance = null;
+            }
+        }
+
+        // ==========================================================
         // NAVIGASI
         // ==========================================================
         let history = [];
@@ -614,6 +772,9 @@
             renderCurrentView();
             document.getElementById('backBtn').classList.remove('visible');
             document.getElementById('breadcrumb').classList.remove('visible');
+            if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                initSortable();
+            }
         }
 
         function goBack() {
@@ -628,6 +789,9 @@
                     document.getElementById('breadcrumb').classList.add('visible');
                     document.getElementById('currentFolder').textContent = currentFolderName;
                 }
+                if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                    initSortable();
+                }
             }
         }
 
@@ -638,6 +802,9 @@
             document.getElementById('backBtn').classList.add('visible');
             document.getElementById('breadcrumb').classList.add('visible');
             document.getElementById('currentFolder').textContent = folder.name;
+            if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                initSortable();
+            }
         }
 
         // ==========================================================
@@ -651,12 +818,14 @@
             if (!items || items.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video di sini</p></div>`;
                 document.getElementById('totalCount').textContent = '0';
+                destroySortable();
                 return;
             }
 
             grid.innerHTML = items.map((v) => `
-                <div class="video-card" onclick="window.open('${v.url}', '_blank')">
+                <div class="video-card" data-id="${v.id}" onclick="window.open('${v.url}', '_blank')">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
+                    ${showDelete ? `<div class="drag-handle" onclick="event.stopPropagation();"><i class="fas fa-grip-vertical"></i></div>` : ''}
                     <div class="thumb">
                         <img src="${v.thumbnail}" alt="${v.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x170/222/f59b00?text=No+Image'">
                     </div>
@@ -667,6 +836,7 @@
             `).join('');
 
             document.getElementById('totalCount').textContent = items.length;
+            if (showDelete) initSortable();
         }
 
         function renderCurrentView() {
@@ -681,22 +851,33 @@
             if (allItems.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Belum Ada Konten</h2><p>Gunakan panel admin untuk menambahkan video atau folder</p></div>`;
                 document.getElementById('totalCount').textContent = '0';
+                destroySortable();
                 return;
             }
 
             grid.innerHTML = allItems.map(item => {
                 if (item.isFolder) {
+                    const thumbHtml = item.thumbnail ? 
+                        `<img src="${item.thumbnail}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">` : '';
                     return `
-                        <div class="folder-card" onclick="openFolder({id: '${item.id}', name: '${item.name}', videos: ${JSON.stringify(item.videos).replace(/"/g, '&quot;')}})">
+                        <div class="folder-card" data-id="${item.id}" onclick="openFolder({id: '${item.id}', name: '${item.name}', videos: ${JSON.stringify(item.videos).replace(/"/g, '&quot;')}})">
                             ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteFolder('${item.id}')"><i class="fas fa-times"></i></button>` : ''}
-                            <div class="thumb"><i class="fas fa-folder"></i><div class="folder-count">${item.videos.length} video</div></div>
+                            ${showDelete ? `<div class="drag-handle" onclick="event.stopPropagation();"><i class="fas fa-grip-vertical"></i></div>` : ''}
+                            <div class="thumb">
+                                ${thumbHtml}
+                                <div class="folder-icon-overlay">
+                                    <i class="fas fa-folder"></i>
+                                    <div class="folder-count">${item.videos.length} video</div>
+                                </div>
+                            </div>
                             <div class="info"><h3><i class="fas fa-folder-open" style="font-size:12px;margin-right:6px;color:#f59b00;"></i>${item.name}</h3><small>${item.videos.length} video dalam folder</small></div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="video-card" onclick="window.open('${item.url}', '_blank')">
+                        <div class="video-card" data-id="${item.id}" onclick="window.open('${item.url}', '_blank')">
                             ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
+                            ${showDelete ? `<div class="drag-handle" onclick="event.stopPropagation();"><i class="fas fa-grip-vertical"></i></div>` : ''}
                             <div class="thumb">
                                 <img src="${item.thumbnail}" alt="${item.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x170/222/f59b00?text=No+Image'">
                             </div>
@@ -711,14 +892,17 @@
             let totalVideos = data.rootVideos.length;
             data.folders.forEach(f => totalVideos += f.videos.length);
             document.getElementById('totalCount').textContent = totalVideos;
+            
+            if (showDelete) initSortable();
         }
 
         // ==========================================================
         // BANNER DISPLAY
         // ==========================================================
         function updateBannerDisplay() {
-            const banner = data.banner || { title: 'Product', bought: 0, thumbnail: '', link: '' };
+            const banner = data.banner || { title: 'Product', desc: 'Deskripsi banner di sini', bought: 0, thumbnail: '', link: '' };
             document.getElementById('bannerTitle').textContent = banner.title || 'Product';
+            document.getElementById('bannerDesc').textContent = banner.desc || 'Deskripsi banner di sini';
             document.getElementById('bannerBought').textContent = (banner.bought || 0);
             
             const thumbImg = document.getElementById('bannerThumbImg');
@@ -751,6 +935,7 @@
             }
 
             document.getElementById('bannerTitleInput').value = banner.title || '';
+            document.getElementById('bannerDescInput').value = banner.desc || '';
             document.getElementById('bannerBoughtInput').value = banner.bought || 0;
             document.getElementById('bannerThumbInput').value = banner.thumbnail || '';
             document.getElementById('bannerLinkInput').value = banner.link || '';
@@ -763,15 +948,29 @@
             if (panel.classList.contains('visible')) updateBannerDisplay();
         }
 
+        function createNewBanner() {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            data.banner = {
+                title: 'Banner Baru',
+                desc: 'Deskripsi banner baru',
+                bought: 0,
+                thumbnail: '',
+                link: ''
+            };
+            updateBannerDisplay();
+            showNotification('✅ Banner baru dibuat! Silakan edit sesuai keinginan.', 'success');
+        }
+
         document.getElementById('bannerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
             const title = document.getElementById('bannerTitleInput').value.trim() || 'Product';
+            const desc = document.getElementById('bannerDescInput').value.trim() || 'Deskripsi banner di sini';
             const bought = parseInt(document.getElementById('bannerBoughtInput').value) || 0;
             const thumb = document.getElementById('bannerThumbInput').value.trim();
             const link = document.getElementById('bannerLinkInput').value.trim();
 
-            data.banner = { title, bought, thumbnail: thumb, link };
+            data.banner = { title, desc, bought, thumbnail: thumb, link };
             await saveToCloud();
             updateBannerDisplay();
             toggleBannerEditor();
@@ -834,19 +1033,23 @@
             updateBannerDisplay();
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-plus"></i> Tambahkan Video';
+            if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                initSortable();
+            }
         });
 
         document.getElementById('addFolderForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
             const name = document.getElementById('folderName').value.trim();
+            const thumbnail = document.getElementById('folderThumb').value.trim();
             if (!name) { showNotification('Nama folder harus diisi!', 'error'); return; }
 
             const btn = document.getElementById('btnAddFolder');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
-            data.folders.push({ id: 'folder_' + Date.now(), name, videos: [] });
+            data.folders.push({ id: 'folder_' + Date.now(), name, videos: [], thumbnail: thumbnail || '' });
             await saveToCloud();
             showNotification(`✅ Folder "${name}" berhasil dibuat!`, 'success');
             this.reset();
@@ -855,6 +1058,9 @@
             updateBannerDisplay();
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-folder-plus"></i> Buat Folder';
+            if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                initSortable();
+            }
         });
 
         // ==========================================================
@@ -897,6 +1103,9 @@
                     if (currentFolder) renderItems(currentFolder.videos, true);
                 }
                 showNotification(`✅ Video "${videoTitle}" dihapus`, 'success');
+                if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                    initSortable();
+                }
             } catch (error) {
                 showNotification('❌ Gagal menghapus video!', 'error');
             }
@@ -919,6 +1128,9 @@
                     updateFolderSelect();
                     updateBannerDisplay();
                     if (history.length > 0) goHome();
+                    if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                        initSortable();
+                    }
                 }
             } catch (error) {
                 showNotification('❌ Gagal menghapus folder!', 'error');
@@ -955,12 +1167,17 @@
                     const importedData = JSON.parse(e.target.result);
                     if (importedData.folders && importedData.rootVideos) {
                         data = importedData;
-                        if (!data.banner) data.banner = { title: 'Product', bought: 0, thumbnail: '', link: '' };
+                        if (!data.banner) data.banner = { title: 'Product', desc: 'Deskripsi banner di sini', bought: 0, thumbnail: '', link: '' };
+                        if (!data.banner.desc) data.banner.desc = 'Deskripsi banner di sini';
+                        data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
                         await saveToCloud();
                         renderCurrentView();
                         updateFolderSelect();
                         updateBannerDisplay();
                         showNotification('✅ Data berhasil diimpor!', 'success');
+                        if (isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible')) {
+                            initSortable();
+                        }
                     } else {
                         showNotification('❌ Format file tidak valid!', 'error');
                     }
@@ -995,6 +1212,12 @@
             document.querySelector('.banner-edit-btn').classList.remove('visible');
             console.log('🎬 Vidoy Stream siap!');
             console.log('🔐 Password default: admin123');
+            console.log('📦 Fitur baru:');
+            console.log('  - Deskripsi di banner');
+            console.log('  - Tulisan "terjual" di kanan');
+            console.log('  - Tombol "Banner Baru"');
+            console.log('  - URL thumbnail untuk folder');
+            console.log('  - Drag & drop untuk mengatur urutan');
         }
         init();
     </script>
