@@ -214,7 +214,7 @@
         .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245, 155, 0, 0.3); }
         .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* SORTABLE - now using number input instead of drag handle */
+        /* SORT CONTROLS - dengan input angka */
         .sort-controls {
             display: none;
             flex-direction: column;
@@ -224,9 +224,10 @@
             top: 8px;
             right: 8px;
             z-index: 10;
-            background: rgba(0,0,0,0.7);
-            padding: 4px 2px;
-            border-radius: 4px;
+            background: rgba(0,0,0,0.85);
+            padding: 6px 4px;
+            border-radius: 6px;
+            border: 1px solid #2a2a2a;
         }
         .sort-controls.show {
             display: flex;
@@ -240,25 +241,62 @@
             padding: 2px 6px;
             font-size: 12px;
             transition: all 0.3s;
-            width: 24px;
+            width: 28px;
             text-align: center;
         }
         .sort-controls .sort-up:hover,
         .sort-controls .sort-down:hover {
             color: #f59b00;
-            background: rgba(245, 155, 0, 0.1);
-            border-radius: 2px;
+            background: rgba(245, 155, 0, 0.15);
+            border-radius: 3px;
         }
-        .sort-controls .sort-num {
-            color: #666;
-            font-size: 10px;
-            background: #1a1a1a;
-            padding: 1px 4px;
-            border-radius: 2px;
-            min-width: 18px;
-            text-align: center;
+        .sort-controls .sort-input-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            padding: 2px;
             border: 1px solid #2a2a2a;
-            cursor: default;
+        }
+        .sort-controls .sort-input-group input[type="number"] {
+            width: 30px;
+            background: transparent;
+            border: none;
+            color: #f59b00;
+            text-align: center;
+            font-size: 12px;
+            padding: 2px 0;
+            font-weight: bold;
+            outline: none;
+        }
+        .sort-controls .sort-input-group input[type="number"]::-webkit-inner-spin-button,
+        .sort-controls .sort-input-group input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .sort-controls .sort-input-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .sort-controls .sort-go {
+            background: #f59b00;
+            border: none;
+            color: #0a0a0a;
+            cursor: pointer;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .sort-controls .sort-go:hover {
+            background: #ffb833;
+            transform: scale(1.05);
+        }
+        .sort-controls .sort-total {
+            color: #444;
+            font-size: 8px;
+            margin-top: 2px;
         }
 
         /* VIDEO GRID */
@@ -337,7 +375,7 @@
         .loading { text-align: center; padding: 60px 20px; color: #f59b00; }
         .loading i { font-size: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 600px) { body { padding: 12px; } .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; } .logo { font-size: 22px; } .header { flex-direction: column; align-items: flex-start; } .header-right { width: 100%; justify-content: space-between; } .admin-panel { padding: 16px; } .admin-tabs { flex-wrap: wrap; } .modal-box { padding: 24px; } .banner-card .banner-thumb { aspect-ratio: 16/6; } .banner-card .banner-info .banner-title { font-size: 15px; } }
+        @media (max-width: 600px) { body { padding: 12px; } .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; } .logo { font-size: 22px; } .header { flex-direction: column; align-items: flex-start; } .header-right { width: 100%; justify-content: space-between; } .admin-panel { padding: 16px; } .admin-tabs { flex-wrap: wrap; } .modal-box { padding: 24px; } .banner-card .banner-thumb { aspect-ratio: 16/6; } .banner-card .banner-info .banner-title { font-size: 15px; } .sort-controls .sort-input-group input[type="number"] { width: 24px; font-size: 10px; } }
         @media (max-width: 400px) { .video-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; } .video-card .info { padding: 8px 10px; } .video-card .info h3 { font-size: 12px; } }
     </style>
 </head>
@@ -510,7 +548,7 @@
             <h3 style="color: #f59b00; margin-bottom: 15px;">Kelola Konten</h3>
             <p style="color: #555; margin-bottom: 15px;">Hapus item dengan mengklik tombol <span style="color: #ef4444;">✕</span> pada kartu</p>
             <p style="color: #888; margin-bottom: 15px; font-size: 13px;">
-                <i class="fas fa-arrow-up"></i> <i class="fas fa-arrow-down"></i> Gunakan tombol panah untuk mengatur urutan
+                <i class="fas fa-sort-numeric-up"></i> Masukkan nomor urut yang diinginkan, lalu klik <strong>Go</strong>
             </p>
             <button onclick="exportData()" class="btn-submit" style="background: #22c55e; margin-right: 10px; margin-bottom: 10px;">
                 <i class="fas fa-download"></i> Export Data
@@ -723,7 +761,7 @@
         }
 
         // ==========================================================
-        // SORTING FUNCTIONS - using number/order
+        // SORTING FUNCTIONS - with direct number input
         // ==========================================================
         function getCurrentItems() {
             const allItems = [
@@ -738,106 +776,74 @@
             return items.findIndex(item => item.id === id);
         }
 
-        async function moveItemUp(id) {
+        async function moveToPosition(id, targetPosition) {
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
-            const items = getCurrentItems();
-            const index = items.findIndex(item => item.id === id);
-            if (index <= 0) {
-                showNotification('⚠️ Item sudah di posisi teratas', 'error');
+            
+            const allItems = getCurrentItems();
+            const currentIndex = allItems.findIndex(item => item.id === id);
+            
+            if (currentIndex === -1) {
+                showNotification('❌ Item tidak ditemukan!', 'error');
                 return;
             }
-            // Swap with item above
-            const item = items[index];
-            const aboveItem = items[index - 1];
             
-            // Find and swap in data
-            const allVideos = [...data.rootVideos, ...data.folders.flatMap(f => f.videos)];
-            const allFolders = data.folders;
+            // Validate target position
+            if (targetPosition < 1 || targetPosition > allItems.length) {
+                showNotification(`⚠️ Masukkan nomor antara 1 - ${allItems.length}`, 'error');
+                return;
+            }
             
-            // Check if item is in rootVideos
+            const targetIdx = targetPosition - 1;
+            if (currentIndex === targetIdx) {
+                showNotification('ℹ️ Item sudah di posisi tersebut', 'success');
+                return;
+            }
+            
+            // Get the item
+            const item = allItems[currentIndex];
+            
+            // Determine where this item belongs (rootVideos, folder, or folder item)
+            // Find in rootVideos
             const rootIndex = data.rootVideos.findIndex(v => v.id === id);
-            if (rootIndex > 0) {
-                // Swap in rootVideos
-                [data.rootVideos[rootIndex], data.rootVideos[rootIndex - 1]] = [data.rootVideos[rootIndex - 1], data.rootVideos[rootIndex]];
+            if (rootIndex !== -1) {
+                // Move in rootVideos
+                const [item] = data.rootVideos.splice(rootIndex, 1);
+                data.rootVideos.splice(targetIdx > rootIndex ? targetIdx - 1 : targetIdx, 0, item);
                 await saveToCloud();
                 renderCurrentView();
-                showNotification('✅ Urutan diperbarui', 'success');
+                showNotification(`✅ Dipindahkan ke posisi ${targetPosition}`, 'success');
                 return;
             }
             
-            // Check if item is in a folder
+            // Find in folder videos
             for (const folder of data.folders) {
                 const vidIndex = folder.videos.findIndex(v => v.id === id);
-                if (vidIndex > 0) {
-                    [folder.videos[vidIndex], folder.videos[vidIndex - 1]] = [folder.videos[vidIndex - 1], folder.videos[vidIndex]];
+                if (vidIndex !== -1) {
+                    const [item] = folder.videos.splice(vidIndex, 1);
+                    folder.videos.splice(targetIdx > vidIndex ? targetIdx - 1 : targetIdx, 0, item);
                     await saveToCloud();
                     if (history.length > 0 && folder.name === currentFolderName) {
                         renderItems(folder.videos, true);
                     } else {
                         renderCurrentView();
                     }
-                    showNotification('✅ Urutan diperbarui', 'success');
+                    showNotification(`✅ Dipindahkan ke posisi ${targetPosition}`, 'success');
                     return;
                 }
             }
             
-            // Check if folder
+            // Find in folders
             const folderIndex = data.folders.findIndex(f => f.id === id);
-            if (folderIndex > 0) {
-                [data.folders[folderIndex], data.folders[folderIndex - 1]] = [data.folders[folderIndex - 1], data.folders[folderIndex]];
+            if (folderIndex !== -1) {
+                const [item] = data.folders.splice(folderIndex, 1);
+                data.folders.splice(targetIdx > folderIndex ? targetIdx - 1 : targetIdx, 0, item);
                 await saveToCloud();
                 renderCurrentView();
-                showNotification('✅ Urutan folder diperbarui', 'success');
+                showNotification(`✅ Folder dipindahkan ke posisi ${targetPosition}`, 'success');
                 return;
             }
             
-            showNotification('❌ Gagal mengubah urutan', 'error');
-        }
-
-        async function moveItemDown(id) {
-            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
-            const items = getCurrentItems();
-            const index = items.findIndex(item => item.id === id);
-            if (index === -1 || index >= items.length - 1) {
-                showNotification('⚠️ Item sudah di posisi terbawah', 'error');
-                return;
-            }
-            
-            // Find and swap in data
-            const rootIndex = data.rootVideos.findIndex(v => v.id === id);
-            if (rootIndex !== -1 && rootIndex < data.rootVideos.length - 1) {
-                [data.rootVideos[rootIndex], data.rootVideos[rootIndex + 1]] = [data.rootVideos[rootIndex + 1], data.rootVideos[rootIndex]];
-                await saveToCloud();
-                renderCurrentView();
-                showNotification('✅ Urutan diperbarui', 'success');
-                return;
-            }
-            
-            for (const folder of data.folders) {
-                const vidIndex = folder.videos.findIndex(v => v.id === id);
-                if (vidIndex !== -1 && vidIndex < folder.videos.length - 1) {
-                    [folder.videos[vidIndex], folder.videos[vidIndex + 1]] = [folder.videos[vidIndex + 1], folder.videos[vidIndex]];
-                    await saveToCloud();
-                    if (history.length > 0 && folder.name === currentFolderName) {
-                        renderItems(folder.videos, true);
-                    } else {
-                        renderCurrentView();
-                    }
-                    showNotification('✅ Urutan diperbarui', 'success');
-                    return;
-                }
-            }
-            
-            const folderIndex = data.folders.findIndex(f => f.id === id);
-            if (folderIndex !== -1 && folderIndex < data.folders.length - 1) {
-                [data.folders[folderIndex], data.folders[folderIndex + 1]] = [data.folders[folderIndex + 1], data.folders[folderIndex]];
-                await saveToCloud();
-                renderCurrentView();
-                showNotification('✅ Urutan folder diperbarui', 'success');
-                return;
-            }
-            
-            showNotification('❌ Gagal mengubah urutan', 'error');
+            showNotification('❌ Gagal memindahkan item', 'error');
         }
 
         // ==========================================================
@@ -886,6 +892,7 @@
             currentItems = items;
             const grid = document.getElementById('videoGrid');
             const showDelete = isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible');
+            const totalItems = items.length;
 
             if (!items || items.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video di sini</p></div>`;
@@ -898,9 +905,12 @@
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
                     ${showDelete ? `
                         <div class="sort-controls show">
-                            <button class="sort-up" onclick="event.stopPropagation(); moveItemUp('${v.id}')" title="Pindahkan ke atas"><i class="fas fa-chevron-up"></i></button>
-                            <span class="sort-num">${idx + 1}</span>
-                            <button class="sort-down" onclick="event.stopPropagation(); moveItemDown('${v.id}')" title="Pindahkan ke bawah"><i class="fas fa-chevron-down"></i></button>
+                            <div class="sort-input-group">
+                                <input type="number" id="sort_input_${v.id}" min="1" max="${totalItems}" value="${idx + 1}" 
+                                       onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveToPosition('${v.id}', parseInt(this.value)); }">
+                                <button class="sort-go" onclick="event.stopPropagation(); moveToPosition('${v.id}', parseInt(document.getElementById('sort_input_${v.id}').value));">Go</button>
+                            </div>
+                            <span class="sort-total">/${totalItems}</span>
                         </div>
                     ` : ''}
                     <div class="thumb">
@@ -923,6 +933,7 @@
             currentItems = allItems;
             const grid = document.getElementById('videoGrid');
             const showDelete = isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible');
+            const totalItems = allItems.length;
 
             if (allItems.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Belum Ada Konten</h2><p>Gunakan panel admin untuk menambahkan video atau folder</p></div>`;
@@ -939,9 +950,12 @@
                             ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteFolder('${item.id}')"><i class="fas fa-times"></i></button>` : ''}
                             ${showDelete ? `
                                 <div class="sort-controls show">
-                                    <button class="sort-up" onclick="event.stopPropagation(); moveItemUp('${item.id}')" title="Pindahkan ke atas"><i class="fas fa-chevron-up"></i></button>
-                                    <span class="sort-num">${idx + 1}</span>
-                                    <button class="sort-down" onclick="event.stopPropagation(); moveItemDown('${item.id}')" title="Pindahkan ke bawah"><i class="fas fa-chevron-down"></i></button>
+                                    <div class="sort-input-group">
+                                        <input type="number" id="sort_input_${item.id}" min="1" max="${totalItems}" value="${idx + 1}"
+                                               onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveToPosition('${item.id}', parseInt(this.value)); }">
+                                        <button class="sort-go" onclick="event.stopPropagation(); moveToPosition('${item.id}', parseInt(document.getElementById('sort_input_${item.id}').value));">Go</button>
+                                    </div>
+                                    <span class="sort-total">/${totalItems}</span>
                                 </div>
                             ` : ''}
                             <div class="thumb">
@@ -960,9 +974,12 @@
                             ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
                             ${showDelete ? `
                                 <div class="sort-controls show">
-                                    <button class="sort-up" onclick="event.stopPropagation(); moveItemUp('${item.id}')" title="Pindahkan ke atas"><i class="fas fa-chevron-up"></i></button>
-                                    <span class="sort-num">${idx + 1}</span>
-                                    <button class="sort-down" onclick="event.stopPropagation(); moveItemDown('${item.id}')" title="Pindahkan ke bawah"><i class="fas fa-chevron-down"></i></button>
+                                    <div class="sort-input-group">
+                                        <input type="number" id="sort_input_${item.id}" min="1" max="${totalItems}" value="${idx + 1}"
+                                               onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveToPosition('${item.id}', parseInt(this.value)); }">
+                                        <button class="sort-go" onclick="event.stopPropagation(); moveToPosition('${item.id}', parseInt(document.getElementById('sort_input_${item.id}').value));">Go</button>
+                                    </div>
+                                    <span class="sort-total">/${totalItems}</span>
                                 </div>
                             ` : ''}
                             <div class="thumb">
@@ -1282,13 +1299,10 @@
             document.querySelector('.banner-edit-btn').classList.remove('visible');
             console.log('🎬 Vidoy Stream siap!');
             console.log('🔐 Password default: admin123');
-            console.log('📦 Fitur:');
-            console.log('  - Tombol panah atas/bawah untuk mengatur urutan');
-            console.log('  - Nomor urut ditampilkan pada setiap item');
-            console.log('  - Deskripsi di banner');
-            console.log('  - Tulisan "terjual" di kanan');
-            console.log('  - Tombol "Banner Baru"');
-            console.log('  - URL thumbnail untuk folder');
+            console.log('📦 Fitur Sorting Baru:');
+            console.log('  - Masukkan angka urutan yang diinginkan');
+            console.log('  - Tekan Enter atau klik Go untuk pindah');
+            console.log('  - Nomor akan langsung berubah sesuai urutan baru');
         }
         init();
     </script>
