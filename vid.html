@@ -323,6 +323,27 @@
         .video-card .delete-btn:hover { transform: scale(1.1); background: #ef4444; }
         .admin-panel.visible ~ .video-grid .video-card .delete-btn,
         .show-delete .video-card .delete-btn { display: flex; }
+        .video-card .edit-btn {
+            position: absolute;
+            top: 50px;
+            right: 8px;
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            transition: all 0.3s;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-card .edit-btn:hover { transform: scale(1.1); background: #2563eb; }
+        .admin-panel.visible ~ .video-grid .video-card .edit-btn,
+        .show-delete .video-card .edit-btn { display: flex; }
         
         .video-card .thumb { 
             width: 100%; 
@@ -361,7 +382,7 @@
             color: white; 
         }
         
-        /* Folder Card - 9:13 dengan judul jelas */
+        /* Folder Card - 9:13, layout diperbaiki jadi flex column supaya judul tidak terpotong */
         .folder-card { 
             background: #141414; 
             border-radius: 10px; 
@@ -370,7 +391,8 @@
             transition: all 0.3s; 
             border: 2px solid #2a2a2a; 
             text-decoration: none; 
-            display: block; 
+            display: flex; 
+            flex-direction: column; 
             color: white; 
             position: relative; 
             aspect-ratio: 9/13;
@@ -397,10 +419,32 @@
         .folder-card .delete-btn:hover { transform: scale(1.1); background: #ef4444; }
         .admin-panel.visible ~ .video-grid .folder-card .delete-btn,
         .show-delete .folder-card .delete-btn { display: flex; }
+        .folder-card .edit-btn {
+            position: absolute;
+            top: 50px;
+            right: 8px;
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            transition: all 0.3s;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .folder-card .edit-btn:hover { transform: scale(1.1); background: #2563eb; }
+        .admin-panel.visible ~ .video-grid .folder-card .edit-btn,
+        .show-delete .folder-card .edit-btn { display: flex; }
         
         .folder-card .thumb { 
             width: 100%; 
-            aspect-ratio: 9/13; 
+            flex: 1 1 auto; 
+            min-height: 0;
             background: linear-gradient(135deg, #1a1a2e, #16213e); 
             overflow: hidden; 
             position: relative; 
@@ -418,34 +462,27 @@
             top: 0;
             left: 0;
         }
-        .folder-card .thumb .folder-icon-overlay {
-            position: relative;
+        .folder-card .thumb .folder-count-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.75);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            color: #f59b00;
+            border: 1px solid rgba(245, 155, 0, 0.3);
             z-index: 2;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
-        .folder-card .thumb .folder-icon-overlay i { 
-            font-size: 50px; 
-            color: #f59b00; 
-            opacity: 0.9;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-        .folder-card .thumb .folder-count { 
-            background: rgba(245, 155, 0, 0.2); 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            font-size: 11px; 
-            color: #f59b00; 
-            border: 1px solid rgba(245, 155, 0, 0.3);
-            position: relative;
-            z-index: 2;
-        }
+        .folder-card .thumb .folder-count-badge i { font-size: 9px; }
         .folder-card .info { 
             padding: 10px 12px; 
             background: #1a1a1a; 
             min-height: 54px;
+            flex: 0 0 auto;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -515,7 +552,7 @@
             .video-card .info h3 { font-size: 11px; }
             .folder-card .info .folder-title { font-size: 12px; }
             .folder-card .info .folder-sub { font-size: 9px; }
-            .folder-card .thumb .folder-icon-overlay i { font-size: 40px; }
+            .folder-card .thumb .folder-count-badge { font-size: 9px; padding: 2px 8px; }
             .folder-card .info { min-height: 46px; padding: 8px 10px; }
         }
         @media (max-width: 400px) { 
@@ -524,7 +561,7 @@
             .video-card .info h3 { font-size: 10px; }
             .folder-card .info .folder-title { font-size: 11px; }
             .folder-card .info .folder-sub { font-size: 8px; }
-            .folder-card .thumb .folder-icon-overlay i { font-size: 32px; }
+            .folder-card .thumb .folder-count-badge { font-size: 8px; padding: 2px 6px; }
             .folder-card .info { min-height: 40px; padding: 6px 8px; }
         }
     </style>
@@ -726,6 +763,29 @@
     </div>
     <div class="video-grid" id="videoGrid"></div>
 
+    <!-- EDIT MODAL -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box" style="max-width:420px;">
+            <h2><i class="fas fa-pen"></i> Edit <span id="editModalType"></span></h2>
+            <form id="editForm">
+                <div class="form-group" id="editTitleGroup">
+                    <label id="editTitleLabel">Judul</label>
+                    <input type="text" id="editTitleInput" required>
+                </div>
+                <div class="form-group">
+                    <label>URL Thumbnail</label>
+                    <input type="url" id="editThumbInput" placeholder="https://example.com/thumb.jpg">
+                </div>
+                <div class="form-group" id="editUrlGroup">
+                    <label>URL Tujuan</label>
+                    <input type="url" id="editUrlInput" placeholder="https://videy.co/v/?id=xxx">
+                </div>
+                <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Simpan Perubahan</button>
+                <button type="button" class="btn-cancel-banner" onclick="closeEditModal()">Batal</button>
+            </form>
+        </div>
+    </div>
+
     <div class="footer">Made with <i class="fas fa-heart"></i> by Vidoy Stream</div>
 
     <script>
@@ -751,6 +811,17 @@
             }
         };
         let isLoading = false;
+
+        // Helper untuk escape teks agar aman disisipkan ke HTML/atribut
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         // ==========================================================
         // SUPABASE FUNCTIONS
@@ -937,8 +1008,8 @@
                 return;
             }
             
-            const [item] = data.folders.splice(folderIndex, 1);
-            data.folders.splice(targetIdx > folderIndex ? targetIdx - 1 : targetIdx, 0, item);
+            // Tukar tempat (swap) antara posisi asal dan posisi tujuan
+            [data.folders[folderIndex], data.folders[targetIdx]] = [data.folders[targetIdx], data.folders[folderIndex]];
             
             await saveToCloud();
             renderCurrentView();
@@ -947,14 +1018,24 @@
 
         async function moveVideoToPosition(videoId, targetPosition) {
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
-            
-            const videoIndex = data.rootVideos.findIndex(v => v.id === videoId);
+
+            // Tentukan sumber array yang benar: video di dalam folder yang sedang dibuka, atau rootVideos
+            const listRef = (currentFolderId !== null)
+                ? (data.folders.find(f => f.id === currentFolderId) || {}).videos
+                : data.rootVideos;
+
+            if (!listRef) {
+                showNotification('❌ Video tidak ditemukan!', 'error');
+                return;
+            }
+
+            const videoIndex = listRef.findIndex(v => v.id === videoId);
             if (videoIndex === -1) {
                 showNotification('❌ Video tidak ditemukan!', 'error');
                 return;
             }
             
-            const totalVideos = data.rootVideos.length;
+            const totalVideos = listRef.length;
             if (targetPosition < 1 || targetPosition > totalVideos) {
                 showNotification(`⚠️ Masukkan nomor antara 1 - ${totalVideos} untuk video`, 'error');
                 return;
@@ -966,11 +1047,16 @@
                 return;
             }
             
-            const [item] = data.rootVideos.splice(videoIndex, 1);
-            data.rootVideos.splice(targetIdx > videoIndex ? targetIdx - 1 : targetIdx, 0, item);
+            // Tukar tempat (swap) antara posisi asal dan posisi tujuan
+            [listRef[videoIndex], listRef[targetIdx]] = [listRef[targetIdx], listRef[videoIndex]];
             
             await saveToCloud();
-            renderCurrentView();
+
+            if (currentFolderId !== null) {
+                renderItems(listRef, true);
+            } else {
+                renderCurrentView();
+            }
             showNotification(`✅ Video dipindahkan ke posisi ${targetPosition}`, 'success');
         }
 
@@ -980,10 +1066,12 @@
         let history = [];
         let currentItems = [];
         let currentFolderName = 'Root';
+        let currentFolderId = null;
 
         function goHome() {
             history = [];
             currentFolderName = 'Root';
+            currentFolderId = null;
             renderCurrentView();
             document.getElementById('backBtn').classList.remove('visible');
             document.getElementById('breadcrumb').classList.remove('visible');
@@ -993,24 +1081,53 @@
             if (history.length > 0) {
                 const prev = history.pop();
                 currentFolderName = prev.name;
-                renderItems(prev.items, true);
-                if (history.length === 0) {
+                currentFolderId = prev.id || null;
+
+                if (currentFolderId === null) {
+                    // Kembali ke Root: root berisi folder + video, jadi render ulang
+                    // langsung dari sumber data terbaru (bukan snapshot lama).
+                    renderCurrentView();
                     document.getElementById('backBtn').classList.remove('visible');
                     document.getElementById('breadcrumb').classList.remove('visible');
                 } else {
+                    // Kembali ke folder induk (nested folder): ambil videos terbaru
+                    // dari data, bukan dari snapshot `prev.items` yang bisa basi.
+                    const parentFolder = data.folders.find(f => f.id === currentFolderId);
+                    renderItems(parentFolder ? parentFolder.videos : prev.items, true);
                     document.getElementById('breadcrumb').classList.add('visible');
                     document.getElementById('currentFolder').textContent = currentFolderName;
                 }
             }
         }
 
+        function openFolderById(folderId) {
+            const folder = data.folders.find(f => f.id === folderId);
+            if (folder) openFolder(folder);
+        }
+
         function openFolder(folder) {
-            history.push({ name: currentFolderName, items: currentItems });
+            history.push({ name: currentFolderName, items: currentItems, id: currentFolderId });
             currentFolderName = folder.name;
+            currentFolderId = folder.id;
             renderItems(folder.videos, true);
             document.getElementById('backBtn').classList.add('visible');
             document.getElementById('breadcrumb').classList.add('visible');
             document.getElementById('currentFolder').textContent = folder.name;
+        }
+
+        // ==========================================================
+        // THUMBNAIL FOLDER OTOMATIS
+        // ==========================================================
+        // Jika folder tidak punya thumbnail manual, ambil thumbnail dari
+        // video pertama di dalam folder tersebut agar folder tetap tampil
+        // dengan gambar asli, bukan logo folder generik.
+        function getFolderThumbnail(folder) {
+            if (folder.thumbnail && folder.thumbnail.trim() !== '') return folder.thumbnail;
+            if (folder.videos && folder.videos.length > 0) {
+                const firstWithThumb = folder.videos.find(v => v.thumbnail && v.thumbnail.trim() !== '');
+                if (firstWithThumb) return firstWithThumb.thumbnail;
+            }
+            return '';
         }
 
         // ==========================================================
@@ -1020,7 +1137,7 @@
             currentItems = items;
             const grid = document.getElementById('videoGrid');
             const showDelete = isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible');
-            const totalItems = items.length;
+            const totalItems = items ? items.length : 0;
 
             if (!items || items.length === 0) {
                 grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video di sini</p></div>`;
@@ -1029,8 +1146,9 @@
             }
 
             grid.innerHTML = items.map((v, idx) => `
-                <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls')) { window.open('${v.url}', '_blank'); }">
+                <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { window.open('${v.url}', '_blank'); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
+                    ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${v.id}', ${isFolderView})"><i class="fas fa-pen"></i></button>` : ''}
                     ${showDelete ? `
                         <div class="sort-controls show" onclick="event.stopPropagation();">
                             <div class="sort-input-group">
@@ -1042,10 +1160,10 @@
                         </div>
                     ` : ''}
                     <div class="thumb">
-                        <img src="${v.thumbnail}" alt="${v.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
+                        <img src="${escapeHtml(v.thumbnail)}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
                     </div>
                     <div class="info">
-                        <h3 title="${v.title}">${v.title}</h3>
+                        <h3 title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</h3>
                     </div>
                 </div>
             `).join('');
@@ -1071,11 +1189,14 @@
 
             // Render Folders - 9:13 dengan judul jelas
             data.folders.forEach((item, idx) => {
-                const thumbHtml = item.thumbnail ? 
-                    `<img src="${item.thumbnail}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">` : '';
+                const folderThumb = getFolderThumbnail(item);
+                const thumbHtml = folderThumb ?
+                    `<img src="${escapeHtml(folderThumb)}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x433/1a1a1a/f59b00?text=No+Image'">` :
+                    `<img src="https://via.placeholder.com/300x433/1a1a1a/f59b00?text=No+Image" alt="${escapeHtml(item.name)}" loading="lazy">`;
                 html += `
-                    <div class="folder-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls')) { openFolder({id: '${item.id}', name: '${item.name}', videos: ${JSON.stringify(item.videos).replace(/"/g, '&quot;')}}); }">
+                    <div class="folder-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { openFolderById('${item.id}'); }">
                         ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteFolder('${item.id}')"><i class="fas fa-times"></i></button>` : ''}
+                        ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditFolder('${item.id}')"><i class="fas fa-pen"></i></button>` : ''}
                         ${showDelete ? `
                             <div class="sort-controls show" onclick="event.stopPropagation();">
                                 <div class="sort-input-group">
@@ -1088,13 +1209,10 @@
                         ` : ''}
                         <div class="thumb">
                             ${thumbHtml}
-                            <div class="folder-icon-overlay">
-                                <i class="fas fa-folder"></i>
-                                <div class="folder-count">${item.videos.length} video</div>
-                            </div>
+                            <div class="folder-count-badge"><i class="fas fa-video"></i> ${item.videos.length}</div>
                         </div>
                         <div class="info">
-                            <div class="folder-title"><i class="fas fa-folder-open"></i>${item.name}</div>
+                            <div class="folder-title">${escapeHtml(item.name)}</div>
                             <div class="folder-sub">${item.videos.length} video dalam folder</div>
                         </div>
                     </div>
@@ -1104,8 +1222,9 @@
             // Render Videos (non-folder) - 9:16
             data.rootVideos.forEach((item, idx) => {
                 html += `
-                    <div class="video-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls')) { window.open('${item.url}', '_blank'); }">
+                    <div class="video-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { window.open('${item.url}', '_blank'); }">
                         ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
+                        ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${item.id}', false)"><i class="fas fa-pen"></i></button>` : ''}
                         ${showDelete ? `
                             <div class="sort-controls show" onclick="event.stopPropagation();">
                                 <div class="sort-input-group">
@@ -1117,10 +1236,10 @@
                             </div>
                         ` : ''}
                         <div class="thumb">
-                            <img src="${item.thumbnail}" alt="${item.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
+                            <img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
                         </div>
                         <div class="info">
-                            <h3 title="${item.title}">${item.title}</h3>
+                            <h3 title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</h3>
                         </div>
                     </div>
                 `;
@@ -1237,7 +1356,7 @@
             const select = document.getElementById('videoFolder');
             select.innerHTML = '<option value="">Root (Tanpa Folder)</option>';
             data.folders.forEach(f => {
-                select.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+                select.innerHTML += `<option value="${f.id}">${escapeHtml(f.name)}</option>`;
             });
         }
 
@@ -1302,7 +1421,7 @@
             let videoTitle = '';
             let found = false;
             if (isInFolder) {
-                const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                const currentFolder = data.folders.find(f => f.id === currentFolderId);
                 if (currentFolder) {
                     const video = currentFolder.videos.find(v => String(v.id) === String(videoId));
                     if (video) { videoTitle = video.title; found = true; }
@@ -1316,7 +1435,7 @@
 
             try {
                 if (isInFolder) {
-                    const currentFolder = data.folders.find(f => f.name === currentFolderName);
+                    const currentFolder = data.folders.find(f => f.id === currentFolderId);
                     if (currentFolder) {
                         const index = currentFolder.videos.findIndex(v => String(v.id) === String(videoId));
                         if (index !== -1) currentFolder.videos.splice(index, 1);
@@ -1326,12 +1445,13 @@
                     if (index !== -1) data.rootVideos.splice(index, 1);
                 }
                 await saveToCloud();
-                renderCurrentView();
                 updateFolderSelect();
                 updateBannerDisplay();
-                if (history.length > 0) {
-                    const currentFolder = data.folders.find(f => f.name === currentFolderName);
-                    if (currentFolder) renderItems(currentFolder.videos, true);
+                if (isInFolder) {
+                    const currentFolder = data.folders.find(f => f.id === currentFolderId);
+                    renderItems(currentFolder ? currentFolder.videos : [], true);
+                } else {
+                    renderCurrentView();
                 }
                 showNotification(`✅ Video "${videoTitle}" dihapus`, 'success');
             } catch (error) {
@@ -1352,15 +1472,116 @@
                     data.folders.splice(index, 1);
                     await saveToCloud();
                     showNotification(`✅ Folder "${folderName}" berhasil dihapus`, 'success');
-                    renderCurrentView();
                     updateFolderSelect();
                     updateBannerDisplay();
                     if (history.length > 0) goHome();
+                    else renderCurrentView();
                 }
             } catch (error) {
                 showNotification('❌ Gagal menghapus folder!', 'error');
             }
         }
+
+        // ==========================================================
+        // EDIT FUNCTIONS
+        // ==========================================================
+        let editContext = null; // { type: 'video'|'folder', id, isInFolder }
+
+        function openEditVideo(videoId, isInFolder) {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            let video = null;
+            if (isInFolder) {
+                const folder = data.folders.find(f => f.id === currentFolderId);
+                if (folder) video = folder.videos.find(v => String(v.id) === String(videoId));
+            } else {
+                video = data.rootVideos.find(v => String(v.id) === String(videoId));
+            }
+            if (!video) { showNotification('❌ Video tidak ditemukan!', 'error'); return; }
+
+            editContext = { type: 'video', id: videoId, isInFolder };
+            document.getElementById('editModalType').textContent = 'Video';
+            document.getElementById('editTitleGroup').style.display = 'block';
+            document.getElementById('editTitleLabel').textContent = 'Judul Video';
+            document.getElementById('editTitleInput').value = video.title || '';
+            document.getElementById('editThumbInput').value = video.thumbnail || '';
+            document.getElementById('editUrlGroup').style.display = 'block';
+            document.getElementById('editUrlInput').value = video.url || '';
+            document.getElementById('editModal').classList.add('visible');
+        }
+
+        function openEditFolder(folderId) {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            const folder = data.folders.find(f => f.id === folderId);
+            if (!folder) { showNotification('❌ Folder tidak ditemukan!', 'error'); return; }
+
+            editContext = { type: 'folder', id: folderId };
+            document.getElementById('editModalType').textContent = 'Folder';
+            document.getElementById('editTitleGroup').style.display = 'block';
+            document.getElementById('editTitleLabel').textContent = 'Nama Folder';
+            document.getElementById('editTitleInput').value = folder.name || '';
+            document.getElementById('editThumbInput').value = folder.thumbnail || '';
+            document.getElementById('editUrlGroup').style.display = 'none';
+            document.getElementById('editModal').classList.add('visible');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('visible');
+            editContext = null;
+        }
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!editContext) return;
+
+            const newTitle = document.getElementById('editTitleInput').value.trim();
+            const newThumb = document.getElementById('editThumbInput').value.trim();
+            const newUrl = document.getElementById('editUrlInput').value.trim();
+
+            if (editContext.type === 'video') {
+                if (!newTitle || !newThumb || !newUrl) { showNotification('Semua field harus diisi!', 'error'); return; }
+                let video = null;
+                const wasInFolder = editContext.isInFolder;
+                if (wasInFolder) {
+                    const folder = data.folders.find(f => f.id === currentFolderId);
+                    if (folder) video = folder.videos.find(v => String(v.id) === String(editContext.id));
+                } else {
+                    video = data.rootVideos.find(v => String(v.id) === String(editContext.id));
+                }
+                if (!video) { showNotification('❌ Video tidak ditemukan!', 'error'); return; }
+                video.title = newTitle;
+                video.thumbnail = newThumb;
+                video.url = newUrl;
+
+                await saveToCloud();
+                closeEditModal();
+                showNotification('✅ Video berhasil diperbarui!', 'success');
+                updateFolderSelect();
+                updateBannerDisplay();
+                if (wasInFolder) {
+                    const folder = data.folders.find(f => f.id === currentFolderId);
+                    renderItems(folder ? folder.videos : [], true);
+                } else {
+                    renderCurrentView();
+                }
+            } else if (editContext.type === 'folder') {
+                if (!newTitle) { showNotification('Nama folder harus diisi!', 'error'); return; }
+                const folder = data.folders.find(f => f.id === editContext.id);
+                if (!folder) { showNotification('❌ Folder tidak ditemukan!', 'error'); return; }
+                folder.name = newTitle;
+                folder.thumbnail = newThumb;
+
+                await saveToCloud();
+                closeEditModal();
+                showNotification('✅ Folder berhasil diperbarui!', 'success');
+                updateFolderSelect();
+                updateBannerDisplay();
+                renderCurrentView();
+            }
+        });
 
         // ==========================================================
         // EXPORT / IMPORT
@@ -1396,7 +1617,7 @@
                         if (!data.banner.desc) data.banner.desc = 'Deskripsi banner di sini';
                         data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
                         await saveToCloud();
-                        renderCurrentView();
+                        goHome();
                         updateFolderSelect();
                         updateBannerDisplay();
                         showNotification('✅ Data berhasil diimpor!', 'success');
@@ -1433,7 +1654,7 @@
             updateBannerDisplay();
             document.querySelector('.banner-edit-btn').classList.remove('visible');
             console.log('🎬 Vidoy Stream siap!');
-            console.log('🔐 Password default: admin123');
+            console.log('🔐 Password default: kontol87');
             console.log('📦 Ukuran Card:');
             console.log('  📁 Folder: 9:13 dengan judul jelas');
             console.log('  🎬 Video: 9:16');
