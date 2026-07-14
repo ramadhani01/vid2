@@ -223,32 +223,15 @@
             position: absolute;
             top: 8px;
             right: 8px;
-            z-index: 10;
-            background: rgba(0,0,0,0.85);
+            z-index: 20;
+            background: rgba(0,0,0,0.9);
             padding: 6px 4px;
             border-radius: 6px;
             border: 1px solid #2a2a2a;
+            pointer-events: auto;
         }
         .sort-controls.show {
             display: flex;
-        }
-        .sort-controls .sort-up,
-        .sort-controls .sort-down {
-            background: transparent;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            padding: 2px 6px;
-            font-size: 12px;
-            transition: all 0.3s;
-            width: 28px;
-            text-align: center;
-        }
-        .sort-controls .sort-up:hover,
-        .sort-controls .sort-down:hover {
-            color: #f59b00;
-            background: rgba(245, 155, 0, 0.15);
-            border-radius: 3px;
         }
         .sort-controls .sort-input-group {
             display: flex;
@@ -260,15 +243,16 @@
             border: 1px solid #2a2a2a;
         }
         .sort-controls .sort-input-group input[type="number"] {
-            width: 30px;
+            width: 32px;
             background: transparent;
             border: none;
             color: #f59b00;
             text-align: center;
             font-size: 12px;
-            padding: 2px 0;
+            padding: 3px 0;
             font-weight: bold;
             outline: none;
+            pointer-events: auto;
         }
         .sort-controls .sort-input-group input[type="number"]::-webkit-inner-spin-button,
         .sort-controls .sort-input-group input[type="number"]::-webkit-outer-spin-button {
@@ -283,20 +267,21 @@
             border: none;
             color: #0a0a0a;
             cursor: pointer;
-            padding: 1px 6px;
+            padding: 2px 8px;
             border-radius: 3px;
             font-size: 10px;
             font-weight: bold;
             transition: all 0.3s;
+            pointer-events: auto;
         }
         .sort-controls .sort-go:hover {
             background: #ffb833;
             transform: scale(1.05);
         }
         .sort-controls .sort-total {
-            color: #444;
+            color: #555;
             font-size: 8px;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         /* VIDEO GRID */
@@ -355,6 +340,18 @@
         .video-card .thumb .play-icon { display: none; }
         .video-card .info { padding: 12px 14px; }
         .video-card .info h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; }
+        
+        /* Click blocker untuk sort controls */
+        .sort-controls * {
+            pointer-events: auto;
+        }
+        .sort-controls {
+            pointer-events: none;
+        }
+        .sort-controls.show {
+            pointer-events: auto;
+        }
+        
         .footer { max-width: 1200px; margin: 30px auto 0; text-align: center; padding: 20px 0 10px; border-top: 1px solid #1a1a1a; color: #333; font-size: 13px; }
         .footer i { color: #ef4444; }
         .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #444; }
@@ -375,7 +372,7 @@
         .loading { text-align: center; padding: 60px 20px; color: #f59b00; }
         .loading i { font-size: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 600px) { body { padding: 12px; } .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; } .logo { font-size: 22px; } .header { flex-direction: column; align-items: flex-start; } .header-right { width: 100%; justify-content: space-between; } .admin-panel { padding: 16px; } .admin-tabs { flex-wrap: wrap; } .modal-box { padding: 24px; } .banner-card .banner-thumb { aspect-ratio: 16/6; } .banner-card .banner-info .banner-title { font-size: 15px; } .sort-controls .sort-input-group input[type="number"] { width: 24px; font-size: 10px; } }
+        @media (max-width: 600px) { body { padding: 12px; } .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; } .logo { font-size: 22px; } .header { flex-direction: column; align-items: flex-start; } .header-right { width: 100%; justify-content: space-between; } .admin-panel { padding: 16px; } .admin-tabs { flex-wrap: wrap; } .modal-box { padding: 24px; } .banner-card .banner-thumb { aspect-ratio: 16/6; } .banner-card .banner-info .banner-title { font-size: 15px; } .sort-controls .sort-input-group input[type="number"] { width: 26px; font-size: 10px; } }
         @media (max-width: 400px) { .video-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; } .video-card .info { padding: 8px 10px; } .video-card .info h3 { font-size: 12px; } }
     </style>
 </head>
@@ -548,7 +545,7 @@
             <h3 style="color: #f59b00; margin-bottom: 15px;">Kelola Konten</h3>
             <p style="color: #555; margin-bottom: 15px;">Hapus item dengan mengklik tombol <span style="color: #ef4444;">✕</span> pada kartu</p>
             <p style="color: #888; margin-bottom: 15px; font-size: 13px;">
-                <i class="fas fa-sort-numeric-up"></i> Masukkan nomor urut yang diinginkan, lalu klik <strong>Go</strong>
+                <i class="fas fa-sort-numeric-up"></i> Masukkan nomor urut yang diinginkan, lalu klik <strong>Go</strong> atau tekan <strong>Enter</strong>
             </p>
             <button onclick="exportData()" class="btn-submit" style="background: #22c55e; margin-right: 10px; margin-bottom: 10px;">
                 <i class="fas fa-download"></i> Export Data
@@ -901,10 +898,10 @@
             }
 
             grid.innerHTML = items.map((v, idx) => `
-                <div class="video-card" data-id="${v.id}" onclick="window.open('${v.url}', '_blank')">
+                <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls')) { window.open('${v.url}', '_blank'); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
                     ${showDelete ? `
-                        <div class="sort-controls show">
+                        <div class="sort-controls show" onclick="event.stopPropagation();">
                             <div class="sort-input-group">
                                 <input type="number" id="sort_input_${v.id}" min="1" max="${totalItems}" value="${idx + 1}" 
                                        onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveToPosition('${v.id}', parseInt(this.value)); }">
@@ -946,10 +943,10 @@
                     const thumbHtml = item.thumbnail ? 
                         `<img src="${item.thumbnail}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">` : '';
                     return `
-                        <div class="folder-card" data-id="${item.id}" onclick="openFolder({id: '${item.id}', name: '${item.name}', videos: ${JSON.stringify(item.videos).replace(/"/g, '&quot;')}})">
+                        <div class="folder-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls')) { openFolder({id: '${item.id}', name: '${item.name}', videos: ${JSON.stringify(item.videos).replace(/"/g, '&quot;')}}); }">
                             ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteFolder('${item.id}')"><i class="fas fa-times"></i></button>` : ''}
                             ${showDelete ? `
-                                <div class="sort-controls show">
+                                <div class="sort-controls show" onclick="event.stopPropagation();">
                                     <div class="sort-input-group">
                                         <input type="number" id="sort_input_${item.id}" min="1" max="${totalItems}" value="${idx + 1}"
                                                onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveToPosition('${item.id}', parseInt(this.value)); }">
@@ -970,10 +967,10 @@
                     `;
                 } else {
                     return `
-                        <div class="video-card" data-id="${item.id}" onclick="window.open('${item.url}', '_blank')">
+                        <div class="video-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls')) { window.open('${item.url}', '_blank'); }">
                             ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
                             ${showDelete ? `
-                                <div class="sort-controls show">
+                                <div class="sort-controls show" onclick="event.stopPropagation();">
                                     <div class="sort-input-group">
                                         <input type="number" id="sort_input_${item.id}" min="1" max="${totalItems}" value="${idx + 1}"
                                                onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveToPosition('${item.id}', parseInt(this.value)); }">
@@ -1299,10 +1296,11 @@
             document.querySelector('.banner-edit-btn').classList.remove('visible');
             console.log('🎬 Vidoy Stream siap!');
             console.log('🔐 Password default: admin123');
-            console.log('📦 Fitur Sorting Baru:');
-            console.log('  - Masukkan angka urutan yang diinginkan');
-            console.log('  - Tekan Enter atau klik Go untuk pindah');
-            console.log('  - Nomor akan langsung berubah sesuai urutan baru');
+            console.log('📦 Cara mengatur urutan:');
+            console.log('  1. Login sebagai admin (admin123)');
+            console.log('  2. Di setiap kartu, ada input angka dan tombol Go');
+            console.log('  3. Ketik nomor urut yang diinginkan');
+            console.log('  4. Tekan Enter atau klik Go untuk pindah');
         }
         init();
     </script>
