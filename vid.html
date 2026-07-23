@@ -537,34 +537,57 @@
         .loading i { font-size: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* VIDEO PLAYER MODAL */
-        .player-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10001; justify-content: center; align-items: center; }
-        .player-overlay.visible { display: flex; }
-        .player-box { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-        .player-box video { max-width: 100%; max-height: 100%; width: auto; height: auto; background: #000; }
-        .player-close-btn {
+        /* VIDEO DETAIL VIEW (diputar langsung di halaman, tanpa link tujuan) */
+        .video-detail-card {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .video-detail-player {
+            width: 100%;
+            background: #000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+        }
+        .video-detail-player video { width: 100%; max-height: 80vh; display: block; background: #000; }
+        .video-detail-close-btn {
             position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(26,26,26,0.9);
+            top: 12px;
+            right: 12px;
+            background: rgba(10,10,10,0.85);
             border: 1px solid #f59b00;
             color: #f59b00;
-            width: 42px;
-            height: 42px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 15px;
             z-index: 10;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
         }
-        .player-close-btn:hover { background: #f59b00; color: #0a0a0a; }
-        .player-loading { position: absolute; color: #f59b00; font-size: 40px; }
-        .player-loading i { animation: spin 1s linear infinite; }
-        .player-error { position: absolute; color: #ef4444; text-align: center; padding: 20px; }
-        .player-error a { color: #f59b00; }
+        .video-detail-close-btn:hover { background: #f59b00; color: #0a0a0a; }
+        .video-detail-loading { position: absolute; color: #f59b00; font-size: 36px; }
+        .video-detail-loading i { animation: spin 1s linear infinite; }
+        .video-detail-error { position: absolute; color: #ef4444; text-align: center; padding: 20px; display: none; }
+        .video-detail-error.visible { display: block; }
+        .video-detail-error a { color: #f59b00; }
+        .video-detail-info { padding: 16px 20px 20px; }
+        .video-detail-title { font-size: 17px; font-weight: 700; color: white; margin-bottom: 14px; word-break: break-word; }
+        .video-detail-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .video-detail-badge { display: inline-flex; align-items: center; gap: 8px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #ddd; padding: 8px 16px; border-radius: 8px; font-size: 13px; white-space: nowrap; }
+        .video-detail-badge i { color: #f59b00; }
+        .video-detail-meta { display: inline-flex; align-items: center; gap: 8px; color: #888; font-size: 13px; }
+        .video-detail-meta i { color: #f59b00; }
         
         @media (max-width: 600px) { 
             body { padding: 12px; } 
@@ -613,19 +636,6 @@
                     <i class="fas fa-exclamation-circle"></i> Password salah!
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- VIDEO PLAYER MODAL -->
-    <div class="player-overlay" id="playerOverlay">
-        <div class="player-box">
-            <button class="player-close-btn" onclick="closePlayer()"><i class="fas fa-times"></i></button>
-            <div class="player-loading" id="playerLoading"><i class="fas fa-spinner"></i></div>
-            <video id="playerVideo" controls autoplay playsinline style="display:none;"></video>
-            <div class="player-error" id="playerError" style="display:none;">
-                <p>Video tidak dapat diputar langsung.</p>
-                <p><a id="playerErrorLink" href="#" target="_blank">Buka video di tab baru</a></p>
-            </div>
         </div>
     </div>
 
@@ -717,6 +727,31 @@
         </div>
     </div>
 
+    <!-- VIDEO DETAIL VIEW (video diputar langsung, tanpa redirect ke link lain) -->
+    <div class="video-detail-card" id="videoDetailCard">
+        <div class="video-detail-player">
+            <button class="video-detail-close-btn" onclick="closeVideoDetail()"><i class="fas fa-times"></i></button>
+            <div class="video-detail-loading" id="videoDetailLoading"><i class="fas fa-spinner"></i></div>
+            <video id="detailVideo" controls playsinline style="display:none;"></video>
+            <div class="video-detail-error" id="videoDetailError">
+                <p>Video tidak dapat diputar langsung.</p>
+                <p><a id="videoDetailErrorLink" href="#" target="_blank">Buka video di tab baru</a></p>
+            </div>
+        </div>
+        <div class="video-detail-info">
+            <div class="video-detail-title" id="detailTitle"></div>
+            <div class="video-detail-badges">
+                <span class="video-detail-badge"><i class="fas fa-eye"></i> <span id="detailViews">0</span> Ditonton</span>
+                <span class="video-detail-badge"><i class="fas fa-heart"></i> <span id="detailLikes">0</span> Suka</span>
+                <span class="video-detail-badge"><i class="fas fa-folder-open"></i> Direct URL</span>
+            </div>
+            <div class="video-detail-badges">
+                <span class="video-detail-badge"><i class="fas fa-file"></i> <span id="detailSize">-</span></span>
+                <span class="video-detail-meta"><i class="fas fa-calendar"></i> Uploaded: <span id="detailDate">-</span></span>
+            </div>
+        </div>
+    </div>
+
     <!-- ADMIN PANEL -->
     <div class="admin-panel" id="adminPanel">
         <h2><i class="fas fa-cog"></i> Panel Admin</h2>
@@ -739,8 +774,22 @@
                     <input type="url" id="videoThumb" placeholder="https://example.com/thumbnail.jpg" required>
                 </div>
                 <div class="form-group">
-                    <label>URL Video (file mp4 langsung)</label>
+                    <label>URL Video (file mp4 langsung, agar bisa diputar)</label>
                     <input type="url" id="videoUrl" placeholder="https://videy.co/v/?id=xxx" required>
+                </div>
+                <div class="form-group">
+                    <label>Ukuran File (Opsional, misal: 198mb)</label>
+                    <input type="text" id="videoSize" placeholder="198mb">
+                </div>
+                <div class="row" style="display:flex; gap:16px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Jumlah Ditonton Awal (Opsional)</label>
+                        <input type="number" id="videoViews" min="0" placeholder="Kosongkan untuk acak">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Jumlah Suka Awal (Opsional)</label>
+                        <input type="number" id="videoLikes" min="0" placeholder="Kosongkan untuk acak">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Simpan di Folder (Opsional)</label>
@@ -822,6 +871,20 @@
                     <label>URL Video</label>
                     <input type="url" id="editUrlInput" placeholder="https://videy.co/v/?id=xxx">
                 </div>
+                <div class="form-group" id="editStatsGroup">
+                    <label>Ukuran File</label>
+                    <input type="text" id="editSizeInput" placeholder="198mb">
+                </div>
+                <div class="row" id="editStatsRow" style="display:flex; gap:16px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Jumlah Ditonton</label>
+                        <input type="number" id="editViewsInput" min="0">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Jumlah Suka</label>
+                        <input type="number" id="editLikesInput" min="0">
+                    </div>
+                </div>
                 <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Simpan Perubahan</button>
                 <button type="button" class="btn-cancel-banner" onclick="closeEditModal()">Batal</button>
             </form>
@@ -866,54 +929,93 @@
         }
 
         // ==========================================================
-        // VIDEO PLAYER (play langsung, tanpa redirect ke tab baru)
+        // VIDEO PLAYER (play langsung di dalam kartu, tanpa link tujuan / redirect)
         // ==========================================================
-        function playVideo(url) {
-            const overlay = document.getElementById('playerOverlay');
-            const video = document.getElementById('playerVideo');
-            const loading = document.getElementById('playerLoading');
-            const errorBox = document.getElementById('playerError');
-            const errorLink = document.getElementById('playerErrorLink');
+        let videoViewActive = false;
 
-            // reset state
-            video.style.display = 'none';
-            errorBox.style.display = 'none';
+        function findVideoById(id, isFolderView) {
+            if (isFolderView) {
+                const folder = data.folders.find(f => f.id === currentFolderId);
+                return folder ? folder.videos.find(v => String(v.id) === String(id)) : null;
+            }
+            return data.rootVideos.find(v => String(v.id) === String(id));
+        }
+
+        function formatDateID(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '-';
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function playVideo(id, isFolderView = false) {
+            const item = findVideoById(id, isFolderView);
+            if (!item) { showNotification('❌ Video tidak ditemukan!', 'error'); return; }
+
+            // hitung view baru & simpan
+            item.views = (item.views || 0) + 1;
+            saveToCloud();
+
+            document.getElementById('videoGrid').style.display = 'none';
+            document.getElementById('bannerCard').style.display = 'none';
+
+            document.getElementById('detailTitle').textContent = item.title;
+            document.getElementById('detailViews').textContent = (item.views || 0).toLocaleString('id-ID');
+            document.getElementById('detailLikes').textContent = (item.likes || 0).toLocaleString('id-ID');
+            document.getElementById('detailSize').textContent = (item.size && item.size.trim() !== '') ? item.size : '-';
+            document.getElementById('detailDate').textContent = formatDateID(item.date);
+
+            const player = document.getElementById('detailVideo');
+            const loading = document.getElementById('videoDetailLoading');
+            const errorBox = document.getElementById('videoDetailError');
+            const errorLink = document.getElementById('videoDetailErrorLink');
+
+            player.style.display = 'none';
+            errorBox.classList.remove('visible');
             loading.style.display = 'block';
-            errorLink.href = url;
+            errorLink.href = item.url;
 
-            overlay.classList.add('visible');
-            document.body.style.overflow = 'hidden';
+            player.pause();
+            player.removeAttribute('src');
+            player.src = item.url;
+            player.load();
 
-            video.src = url;
-            video.load();
-
-            video.oncanplay = function() {
+            player.oncanplay = function() {
                 loading.style.display = 'none';
-                video.style.display = 'block';
+                player.style.display = 'block';
             };
-
-            video.onerror = function() {
+            player.onerror = function() {
                 loading.style.display = 'none';
-                video.style.display = 'none';
-                errorBox.style.display = 'block';
+                player.style.display = 'none';
+                errorBox.classList.add('visible');
             };
+            player.play().catch(() => {});
 
-            video.play().catch(() => {});
+            document.getElementById('videoDetailCard').style.display = 'block';
+            videoViewActive = true;
+            document.getElementById('backBtn').classList.add('visible');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function closePlayer() {
-            const overlay = document.getElementById('playerOverlay');
-            const video = document.getElementById('playerVideo');
-            video.pause();
-            video.removeAttribute('src');
-            video.load();
-            overlay.classList.remove('visible');
-            document.body.style.overflow = '';
-        }
+        function closeVideoDetail() {
+            const player = document.getElementById('detailVideo');
+            player.pause();
+            player.removeAttribute('src');
+            player.load();
+            document.getElementById('videoDetailCard').style.display = 'none';
+            document.getElementById('videoGrid').style.display = 'grid';
+            videoViewActive = false;
 
-        document.getElementById('playerOverlay').addEventListener('click', function(e) {
-            if (e.target === this) closePlayer();
-        });
+            if (currentFolderId === null) {
+                document.getElementById('bannerCard').style.display = 'flex';
+                document.getElementById('backBtn').classList.remove('visible');
+                renderCurrentView();
+            } else {
+                const folder = data.folders.find(f => f.id === currentFolderId);
+                renderItems(folder ? folder.videos : [], true);
+                document.getElementById('backBtn').classList.add('visible');
+            }
+        }
 
         // ==========================================================
         // SUPABASE FUNCTIONS
@@ -1161,6 +1263,7 @@
         let currentFolderId = null;
 
         function goHome() {
+            if (videoViewActive) closeVideoDetail();
             history = [];
             currentFolderName = 'Root';
             currentFolderId = null;
@@ -1170,6 +1273,10 @@
         }
 
         function goBack() {
+            if (videoViewActive) {
+                closeVideoDetail();
+                return;
+            }
             if (history.length > 0) {
                 const prev = history.pop();
                 currentFolderName = prev.name;
@@ -1238,7 +1345,7 @@
             }
 
             grid.innerHTML = items.map((v, idx) => `
-                <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${v.url}'); }">
+                <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${v.id}', ${isFolderView}); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
                     ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${v.id}', ${isFolderView})"><i class="fas fa-pen"></i></button>` : ''}
                     ${showDelete ? `
@@ -1314,7 +1421,7 @@
             // Render Videos (non-folder) - 9:16
             data.rootVideos.forEach((item, idx) => {
                 html += `
-                    <div class="video-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${item.url}'); }">
+                    <div class="video-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${item.id}', false); }">
                         ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
                         ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${item.id}', false)"><i class="fas fa-pen"></i></button>` : ''}
                         ${showDelete ? `
@@ -1458,6 +1565,9 @@
             const title = document.getElementById('videoTitle').value.trim();
             const thumb = document.getElementById('videoThumb').value.trim();
             const url = document.getElementById('videoUrl').value.trim();
+            const size = document.getElementById('videoSize').value.trim();
+            const viewsRaw = document.getElementById('videoViews').value.trim();
+            const likesRaw = document.getElementById('videoLikes').value.trim();
             const folderId = document.getElementById('videoFolder').value;
             if (!title || !thumb || !url) { showNotification('Semua field harus diisi!', 'error'); return; }
 
@@ -1465,7 +1575,17 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
-            const newVideo = { id: 'vid_' + Date.now(), title, thumbnail: thumb, url };
+            const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
+            const initialLikes = likesRaw !== '' ? parseInt(likesRaw) : Math.floor(initialViews * (0.6 + Math.random() * 0.3));
+
+            const newVideo = {
+                id: 'vid_' + Date.now(),
+                title, thumbnail: thumb, url,
+                size: size,
+                views: initialViews,
+                likes: initialLikes,
+                date: new Date().toISOString()
+            };
             if (folderId) {
                 const folder = data.folders.find(f => f.id === folderId);
                 if (folder) folder.videos.push(newVideo);
@@ -1598,6 +1718,11 @@
             document.getElementById('editThumbInput').value = video.thumbnail || '';
             document.getElementById('editUrlGroup').style.display = 'block';
             document.getElementById('editUrlInput').value = video.url || '';
+            document.getElementById('editStatsGroup').style.display = 'block';
+            document.getElementById('editStatsRow').style.display = 'flex';
+            document.getElementById('editSizeInput').value = video.size || '';
+            document.getElementById('editViewsInput').value = video.views || 0;
+            document.getElementById('editLikesInput').value = video.likes || 0;
             document.getElementById('editModal').classList.add('visible');
         }
 
@@ -1613,6 +1738,8 @@
             document.getElementById('editTitleInput').value = folder.name || '';
             document.getElementById('editThumbInput').value = folder.thumbnail || '';
             document.getElementById('editUrlGroup').style.display = 'none';
+            document.getElementById('editStatsGroup').style.display = 'none';
+            document.getElementById('editStatsRow').style.display = 'none';
             document.getElementById('editModal').classList.add('visible');
         }
 
@@ -1632,6 +1759,9 @@
             const newTitle = document.getElementById('editTitleInput').value.trim();
             const newThumb = document.getElementById('editThumbInput').value.trim();
             const newUrl = document.getElementById('editUrlInput').value.trim();
+            const newSize = document.getElementById('editSizeInput').value.trim();
+            const newViews = document.getElementById('editViewsInput').value;
+            const newLikes = document.getElementById('editLikesInput').value;
 
             if (editContext.type === 'video') {
                 if (!newTitle || !newThumb || !newUrl) { showNotification('Semua field harus diisi!', 'error'); return; }
@@ -1647,6 +1777,9 @@
                 video.title = newTitle;
                 video.thumbnail = newThumb;
                 video.url = newUrl;
+                video.size = newSize;
+                video.views = newViews !== '' ? parseInt(newViews) : (video.views || 0);
+                video.likes = newLikes !== '' ? parseInt(newLikes) : (video.likes || 0);
 
                 await saveToCloud();
                 closeEditModal();
