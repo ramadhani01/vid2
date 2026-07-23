@@ -540,7 +540,7 @@
         /* VIDEO DETAIL VIEW (diputar langsung di halaman, tanpa link tujuan) */
         .video-detail-card {
             display: none;
-            max-width: 1200px;
+            max-width: 380px;
             margin: 0 auto 20px;
             background: #141414;
             border: 1px solid #2a2a2a;
@@ -554,9 +554,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 220px;
+            min-height: 180px;
+            max-height: 55vh;
         }
-        .video-detail-player video { width: 100%; max-height: 80vh; display: block; background: #000; }
+        .video-detail-player video { max-width: 100%; max-height: 55vh; width: auto; height: auto; display: block; margin: 0 auto; background: #000; object-fit: contain; }
+        .video-detail-poster { width: 100%; height: 100%; min-height: 180px; max-height: 55vh; position: relative; cursor: pointer; }
+        .video-detail-poster img { width: 100%; height: 100%; max-height: 55vh; object-fit: cover; display: block; }
+        .video-detail-play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(245, 155, 0, 0.95);
+            color: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+        .video-detail-poster:hover .video-detail-play-btn { transform: translate(-50%, -50%) scale(1.08); }
         .video-detail-close-btn {
             position: absolute;
             top: 12px;
@@ -731,8 +751,17 @@
     <div class="video-detail-card" id="videoDetailCard">
         <div class="video-detail-player">
             <button class="video-detail-close-btn" onclick="closeVideoDetail()"><i class="fas fa-times"></i></button>
-            <div class="video-detail-loading" id="videoDetailLoading"><i class="fas fa-spinner"></i></div>
-            <video id="detailVideo" controls playsinline style="display:none;"></video>
+            <div class="video-detail-poster" id="videoDetailPoster" onclick="startDetailPlayback()">
+                <img id="videoDetailPosterImg" src="" alt="">
+                <div class="video-detail-play-btn"><i class="fas fa-play"></i></div>
+            </div>
+            <div class="video-detail-loading" id="videoDetailLoading" style="display:none;"><i class="fas fa-spinner"></i></div>
+            <video id="detailVideo" controls playsinline
+                   controlsList="nodownload noremoteplayback"
+                   disablePictureInPicture
+                   oncontextmenu="return false"
+                   ondragstart="return false"
+                   style="display:none;"></video>
             <div class="video-detail-error" id="videoDetailError">
                 <p>Video tidak dapat diputar langsung.</p>
                 <p><a id="videoDetailErrorLink" href="#" target="_blank">Buka video di tab baru</a></p>
@@ -764,6 +793,9 @@
         <!-- Form Tambah Video -->
         <div class="admin-form active" id="formVideo">
             <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Video Baru</h3>
+            <p style="color:#666; font-size:12px; margin-bottom:15px;">
+                <i class="fas fa-info-circle"></i> Upload file akan disimpan ke Supabase Storage (bucket <code>videos</code>, harus public) agar hasilnya berupa URL file langsung yang pasti bisa diputar.
+            </p>
             <form id="addVideoForm">
                 <div class="form-group">
                     <label>Judul Video</label>
@@ -774,11 +806,21 @@
                     <input type="url" id="videoThumb" placeholder="https://example.com/thumbnail.jpg" required>
                 </div>
                 <div class="form-group">
-                    <label>URL Video (file mp4 langsung, agar bisa diputar)</label>
-                    <input type="url" id="videoUrl" placeholder="https://videy.co/v/?id=xxx" required>
+                    <label>Upload File Video (MP4/WebM — akan diupload & langsung bisa diputar)</label>
+                    <input type="file" id="videoFile" accept="video/*">
+                    <div id="uploadProgressWrap" style="display:none; margin-top:10px;">
+                        <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:6px; overflow:hidden; height:10px;">
+                            <div id="uploadProgressBar" style="height:100%; width:0%; background:#f59b00; transition:width .2s;"></div>
+                        </div>
+                        <div id="uploadProgressText" style="color:#888; font-size:12px; margin-top:4px;">0%</div>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Ukuran File (Opsional, misal: 198mb)</label>
+                    <label>Atau URL Video Langsung (file .mp4 langsung — isi ini JIKA tidak upload file di atas)</label>
+                    <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4">
+                </div>
+                <div class="form-group">
+                    <label>Ukuran File (otomatis terisi kalau upload file, atau isi manual)</label>
                     <input type="text" id="videoSize" placeholder="198mb">
                 </div>
                 <div class="row" style="display:flex; gap:16px;">
@@ -901,6 +943,43 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vemlxZGRoa3hjZ3F1d2t4dXdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5OTI4NzcsImV4cCI6MjA5ODU2ODg3N30.P4ibYuZfq4si4q4ssoWNn3Kl0wvCQBV78qArNgf8STI';
         const TABLE_NAME = 'app_data';
         const RECORD_ID = 1;
+        const VIDEO_BUCKET = 'videos';
+
+        // ==========================================================
+        // UPLOAD VIDEO KE SUPABASE STORAGE (agar file benar-benar
+        // diupload dan menghasilkan URL file mp4 langsung yang pasti
+        // bisa diputar oleh tag <video>, bukan link embed/halaman)
+        // ==========================================================
+        function uploadVideoFile(file, onProgress) {
+            return new Promise((resolve, reject) => {
+                const safeName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${VIDEO_BUCKET}/${safeName}`, true);
+                xhr.setRequestHeader('apikey', SUPABASE_KEY);
+                xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_KEY}`);
+                xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+                };
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(`${SUPABASE_URL}/storage/v1/object/public/${VIDEO_BUCKET}/${safeName}`);
+                    } else {
+                        reject(new Error('Upload gagal (status ' + xhr.status + '). Pastikan bucket "' + VIDEO_BUCKET + '" sudah dibuat & public di Supabase Storage.'));
+                    }
+                };
+                xhr.onerror = function() { reject(new Error('Upload gagal. Cek koneksi internet atau pengaturan bucket Supabase.')); };
+                xhr.send(file);
+            });
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes) return '';
+            const units = ['b', 'kb', 'mb', 'gb'];
+            let val = bytes, i = 0;
+            while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+            return (val < 10 && i > 0 ? val.toFixed(1) : Math.round(val)) + units[i];
+        }
 
         let adminPassword = 'admin123';
         let isAdminLoggedIn = false;
@@ -932,6 +1011,7 @@
         // VIDEO PLAYER (play langsung di dalam kartu, tanpa link tujuan / redirect)
         // ==========================================================
         let videoViewActive = false;
+        let currentDetailVideo = null;
 
         function findVideoById(id, isFolderView) {
             if (isFolderView) {
@@ -952,9 +1032,7 @@
             const item = findVideoById(id, isFolderView);
             if (!item) { showNotification('❌ Video tidak ditemukan!', 'error'); return; }
 
-            // hitung view baru & simpan
-            item.views = (item.views || 0) + 1;
-            saveToCloud();
+            currentDetailVideo = item;
 
             document.getElementById('videoGrid').style.display = 'none';
             document.getElementById('bannerCard').style.display = 'none';
@@ -965,18 +1043,50 @@
             document.getElementById('detailSize').textContent = (item.size && item.size.trim() !== '') ? item.size : '-';
             document.getElementById('detailDate').textContent = formatDateID(item.date);
 
+            // Tampilkan poster/thumbnail dulu, video BELUM dimuat/diputar
+            // sampai tombol play ditekan secara manual.
+            const poster = document.getElementById('videoDetailPoster');
+            const posterImg = document.getElementById('videoDetailPosterImg');
+            const player = document.getElementById('detailVideo');
+            const loading = document.getElementById('videoDetailLoading');
+            const errorBox = document.getElementById('videoDetailError');
+
+            posterImg.src = item.thumbnail || '';
+            posterImg.onerror = function() { this.src = 'https://via.placeholder.com/400x600/1a1a1a/f59b00?text=No+Image'; };
+            poster.style.display = 'block';
+            player.style.display = 'none';
+            player.pause();
+            player.removeAttribute('src');
+            loading.style.display = 'none';
+            errorBox.classList.remove('visible');
+
+            document.getElementById('videoDetailCard').style.display = 'block';
+            videoViewActive = true;
+            document.getElementById('backBtn').classList.add('visible');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function startDetailPlayback() {
+            const item = currentDetailVideo;
+            if (!item) return;
+
+            // hitung view baru & simpan, hanya saat benar-benar mulai diputar
+            item.views = (item.views || 0) + 1;
+            document.getElementById('detailViews').textContent = item.views.toLocaleString('id-ID');
+            saveToCloud();
+
+            const poster = document.getElementById('videoDetailPoster');
             const player = document.getElementById('detailVideo');
             const loading = document.getElementById('videoDetailLoading');
             const errorBox = document.getElementById('videoDetailError');
             const errorLink = document.getElementById('videoDetailErrorLink');
 
+            poster.style.display = 'none';
             player.style.display = 'none';
             errorBox.classList.remove('visible');
             loading.style.display = 'block';
             errorLink.href = item.url;
 
-            player.pause();
-            player.removeAttribute('src');
             player.src = item.url;
             player.load();
 
@@ -990,11 +1100,6 @@
                 errorBox.classList.add('visible');
             };
             player.play().catch(() => {});
-
-            document.getElementById('videoDetailCard').style.display = 'block';
-            videoViewActive = true;
-            document.getElementById('backBtn').classList.add('visible');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function closeVideoDetail() {
@@ -1005,6 +1110,7 @@
             document.getElementById('videoDetailCard').style.display = 'none';
             document.getElementById('videoGrid').style.display = 'grid';
             videoViewActive = false;
+            currentDetailVideo = null;
 
             if (currentFolderId === null) {
                 document.getElementById('bannerCard').style.display = 'flex';
@@ -1564,15 +1670,47 @@
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
             const title = document.getElementById('videoTitle').value.trim();
             const thumb = document.getElementById('videoThumb').value.trim();
-            const url = document.getElementById('videoUrl').value.trim();
-            const size = document.getElementById('videoSize').value.trim();
+            const manualUrl = document.getElementById('videoUrl').value.trim();
+            const manualSize = document.getElementById('videoSize').value.trim();
             const viewsRaw = document.getElementById('videoViews').value.trim();
             const likesRaw = document.getElementById('videoLikes').value.trim();
             const folderId = document.getElementById('videoFolder').value;
-            if (!title || !thumb || !url) { showNotification('Semua field harus diisi!', 'error'); return; }
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput.files && fileInput.files[0];
+
+            if (!title || !thumb) { showNotification('Judul dan thumbnail harus diisi!', 'error'); return; }
+            if (!file && !manualUrl) { showNotification('Upload file video ATAU isi URL video langsung!', 'error'); return; }
 
             const btn = document.getElementById('btnAddVideo');
             btn.disabled = true;
+
+            let finalUrl = manualUrl;
+            let finalSize = manualSize;
+
+            if (file) {
+                const progressWrap = document.getElementById('uploadProgressWrap');
+                const progressBar = document.getElementById('uploadProgressBar');
+                const progressText = document.getElementById('uploadProgressText');
+                progressWrap.style.display = 'block';
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Mengupload... 0%';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengupload video...';
+                try {
+                    finalUrl = await uploadVideoFile(file, (pct) => {
+                        progressBar.style.width = pct + '%';
+                        progressText.textContent = 'Mengupload... ' + pct + '%';
+                    });
+                    finalSize = manualSize || formatBytes(file.size);
+                    progressText.textContent = 'Upload selesai ✅';
+                } catch (err) {
+                    showNotification('❌ ' + err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i> Tambahkan Video';
+                    progressWrap.style.display = 'none';
+                    return;
+                }
+            }
+
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
             const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
@@ -1580,8 +1718,8 @@
 
             const newVideo = {
                 id: 'vid_' + Date.now(),
-                title, thumbnail: thumb, url,
-                size: size,
+                title, thumbnail: thumb, url: finalUrl,
+                size: finalSize,
                 views: initialViews,
                 likes: initialLikes,
                 date: new Date().toISOString()
@@ -1595,6 +1733,7 @@
 
             await saveToCloud();
             showNotification(`✅ Video "${title}" berhasil ditambahkan!`, 'success');
+            document.getElementById('uploadProgressWrap').style.display = 'none';
             this.reset();
             renderCurrentView();
             updateFolderSelect();
