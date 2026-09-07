@@ -1361,36 +1361,53 @@
         // ==========================================================
         // AUTO THUMBNAIL: kalau admin tidak mengisi URL Thumbnail,
         // ambil satu frame dari videonya sendiri sebagai thumbnail.
-        // Kalau gagal (mis. video lintas-domain tanpa izin CORS),
-        // biarkan kosong — tampilan akan otomatis pakai gambar
-        // placeholder seperti biasa.
+        // Video sengaja ditempel ke halaman (disembunyikan lewat posisi
+        // di luar layar, BUKAN display:none) karena banyak browser HP
+        // menolak memuat video yang tidak nempel ke DOM sama sekali.
+        // Kalau tetap gagal (mis. video lintas-domain tanpa izin CORS),
+        // thumbnail dibiarkan kosong dan tampilan otomatis pakai gambar
+        // placeholder — dan admin diberi tahu lewat notifikasi.
         // ==========================================================
         function captureVideoFrameThumbnail(videoSrc) {
             return new Promise((resolve) => {
-                if (!videoSrc) { resolve(''); return; }
+                if (!videoSrc) { resolve({ url: '', reason: 'no-src' }); return; }
                 const vid = document.createElement('video');
                 vid.crossOrigin = 'anonymous';
                 vid.preload = 'auto';
                 vid.muted = true;
+                vid.defaultMuted = true;
                 vid.playsInline = true;
+                vid.setAttribute('muted', '');
+                vid.setAttribute('playsinline', '');
+                vid.style.position = 'fixed';
+                vid.style.top = '-9999px';
+                vid.style.left = '-9999px';
+                vid.style.width = '2px';
+                vid.style.height = '2px';
+                document.body.appendChild(vid);
 
                 let settled = false;
-                const finish = (result) => {
+                const cleanup = () => {
+                    clearTimeout(timeoutId);
+                    try { vid.pause(); } catch (e) {}
+                    vid.removeAttribute('src');
+                    try { vid.load(); } catch (e) {}
+                    if (vid.parentNode) vid.parentNode.removeChild(vid);
+                };
+                const finish = (url, reason) => {
                     if (settled) return;
                     settled = true;
-                    clearTimeout(timeoutId);
-                    vid.removeAttribute('src');
-                    vid.load();
-                    resolve(result);
+                    cleanup();
+                    resolve({ url, reason });
                 };
 
-                const timeoutId = setTimeout(() => finish(''), 8000);
+                const timeoutId = setTimeout(() => finish('', 'timeout (video terlalu lama dimuat)'), 12000);
 
-                vid.addEventListener('loadeddata', function() {
+                vid.addEventListener('loadedmetadata', function() {
                     try {
                         const seekTo = Math.min(1, (vid.duration || 2) * 0.1) || 0.5;
                         vid.currentTime = seekTo;
-                    } catch (e) { finish(''); }
+                    } catch (e) { finish('', 'gagal seek: ' + e.message); }
                 });
 
                 vid.addEventListener('seeked', function() {
@@ -1398,18 +1415,23 @@
                         const canvas = document.createElement('canvas');
                         canvas.width = vid.videoWidth || 400;
                         canvas.height = vid.videoHeight || 711;
+                        if (!vid.videoWidth || !vid.videoHeight) { finish('', 'dimensi video tidak terbaca'); return; }
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                        finish(dataUrl);
+                        finish(dataUrl, 'ok');
                     } catch (e) {
-                        finish(''); // kemungkinan canvas ternoda (CORS)
+                        finish('', 'canvas diblokir (kemungkinan izin CORS di sumber video): ' + e.message);
                     }
                 });
 
-                vid.addEventListener('error', function() { finish(''); });
+                vid.addEventListener('error', function() {
+                    const code = vid.error ? vid.error.code : 'unknown';
+                    finish('', 'video gagal dimuat (kode error: ' + code + ')');
+                });
 
                 vid.src = videoSrc;
+                vid.load();
             });
         }
 
@@ -2608,7 +2630,12 @@
             let finalThumb = thumb;
             if (!finalThumb && finalUrl) {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengambil thumbnail dari video...';
-                finalThumb = await captureVideoFrameThumbnail(finalUrl);
+                const captured = await captureVideoFrameThumbnail(finalUrl);
+                finalThumb = captured.url;
+                if (!finalThumb) {
+                    console.warn('Auto-thumbnail gagal:', captured.reason);
+                    showNotification('⚠️ Gagal ambil thumbnail otomatis dari video (' + captured.reason + '). Video tetap disimpan, thumbnail pakai placeholder — bisa diisi manual lewat tombol Edit.', 'error');
+                }
             }
 
             const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
