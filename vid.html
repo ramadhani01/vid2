@@ -1035,7 +1035,14 @@
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail</label>
-                    <input type="url" id="bannerThumbInput" placeholder="https://example.com/thumb.jpg">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="url" id="bannerThumbInput" placeholder="https://example.com/thumb.jpg" style="flex:1;">
+                        <label style="flex:0 0 auto; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:9px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;">
+                            <i class="fas fa-upload"></i> Upload
+                            <input type="file" accept="image/*" style="display:none" onchange="handleThumbFileUpload(this,'bannerThumbInput','bannerThumbInputStatus')">
+                        </label>
+                    </div>
+                    <span id="bannerThumbInputStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <div class="form-group">
                     <label>URL Tujuan (saat diklik)</label>
@@ -1122,7 +1129,14 @@
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail (Opsional)</label>
-                    <input type="url" id="videoThumb" placeholder="Kosongkan untuk otomatis ambil dari video">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="url" id="videoThumb" placeholder="Kosongkan untuk otomatis ambil dari video" style="flex:1;">
+                        <label style="flex:0 0 auto; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:9px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;">
+                            <i class="fas fa-upload"></i> Upload
+                            <input type="file" accept="image/*" style="display:none" onchange="handleThumbFileUpload(this,'videoThumb','videoThumbStatus')">
+                        </label>
+                    </div>
+                    <span id="videoThumbStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <div class="form-group">
                     <label>Upload File Video (MP4/WebM — akan diupload & langsung bisa diputar)</label>
@@ -1188,7 +1202,14 @@
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail (Opsional)</label>
-                    <input type="url" id="folderThumb" placeholder="https://example.com/folder-thumb.jpg">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="url" id="folderThumb" placeholder="https://example.com/folder-thumb.jpg" style="flex:1;">
+                        <label style="flex:0 0 auto; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:9px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;">
+                            <i class="fas fa-upload"></i> Upload
+                            <input type="file" accept="image/*" style="display:none" onchange="handleThumbFileUpload(this,'folderThumb','folderThumbStatus')">
+                        </label>
+                    </div>
+                    <span id="folderThumbStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <button type="submit" class="btn-submit" id="btnAddFolder">
                     <i class="fas fa-folder-plus"></i> Buat Folder
@@ -1209,7 +1230,14 @@
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail Banner</label>
-                    <input type="url" id="bannerGridThumb" placeholder="https://example.com/banner.jpg" required>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="url" id="bannerGridThumb" placeholder="https://example.com/banner.jpg" required style="flex:1;">
+                        <label style="flex:0 0 auto; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:9px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;">
+                            <i class="fas fa-upload"></i> Upload
+                            <input type="file" accept="image/*" style="display:none" onchange="handleThumbFileUpload(this,'bannerGridThumb','bannerGridThumbStatus')">
+                        </label>
+                    </div>
+                    <span id="bannerGridThumbStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <div class="form-group">
                     <label>URL Link Tujuan (Opsional)</label>
@@ -1265,7 +1293,14 @@
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail</label>
-                    <input type="url" id="editThumbInput" placeholder="https://example.com/thumb.jpg">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="url" id="editThumbInput" placeholder="https://example.com/thumb.jpg" style="flex:1;">
+                        <label style="flex:0 0 auto; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:9px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;">
+                            <i class="fas fa-upload"></i> Upload
+                            <input type="file" accept="image/*" style="display:none" onchange="handleThumbFileUpload(this,'editThumbInput','editThumbInputStatus')">
+                        </label>
+                    </div>
+                    <span id="editThumbInputStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <div class="form-group" id="editUrlGroup">
                     <label id="editUrlLabel">URL Video</label>
@@ -1352,6 +1387,10 @@
         const TABLE_NAME = 'app_data';
         const RECORD_ID = 1;
         const VIDEO_BUCKET = 'videos';
+        // Daftar gratis di https://api.imgbb.com/ (login pakai akun ImgBB) untuk
+        // dapat API Key, lalu tempel di bawah ini. Selama masih kosong, tombol
+        // "Upload" gambar akan menampilkan pesan error.
+        const IMGBB_API_KEY = 'ad9e0b8a3c19e278ac72c099ced3d2bb';
         const UNLOCK_TOKENS_TABLE = 'unlock_tokens';
 
         // ==========================================================
@@ -1440,6 +1479,63 @@
             } catch (e) {
                 console.error('redeemUnlockToken gagal:', e);
                 return false;
+            }
+        }
+
+        // ==========================================================
+        // UPLOAD GAMBAR OTOMATIS KE IMGBB (dipakai semua tombol "Upload"
+        // di sebelah kolom URL Thumbnail — video, folder, banner, edit)
+        // ==========================================================
+        function uploadImageToImgbb(file, onProgress) {
+            return new Promise((resolve, reject) => {
+                if (!IMGBB_API_KEY || IMGBB_API_KEY.trim() === '') {
+                    reject(new Error('API Key ImgBB belum diisi. Buka kode, cari IMGBB_API_KEY, isi dengan key dari api.imgbb.com.'));
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('image', file);
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, true);
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+                };
+                xhr.onload = function() {
+                    let res;
+                    try { res = JSON.parse(xhr.responseText); } catch (e) { res = null; }
+                    if (xhr.status >= 200 && xhr.status < 300 && res && res.success) {
+                        resolve(res.data.url);
+                    } else {
+                        const msg = (res && res.error && res.error.message) ? res.error.message : ('status ' + xhr.status);
+                        reject(new Error('Upload ke ImgBB gagal (' + msg + ').'));
+                    }
+                };
+                xhr.onerror = function() { reject(new Error('Upload gagal. Cek koneksi internet.')); };
+                xhr.send(formData);
+            });
+        }
+
+        async function handleThumbFileUpload(fileInput, targetInputId, statusElId) {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            const statusEl = statusElId ? document.getElementById(statusElId) : null;
+            if (statusEl) { statusEl.style.display = 'inline'; statusEl.style.color = '#888'; statusEl.textContent = 'Mengupload 0%...'; }
+            try {
+                const url = await uploadImageToImgbb(file, (pct) => {
+                    if (statusEl) statusEl.textContent = `Mengupload ${pct}%...`;
+                });
+                const targetInput = document.getElementById(targetInputId);
+                if (targetInput) targetInput.value = url;
+                if (statusEl) {
+                    statusEl.style.color = '#22c55e';
+                    statusEl.textContent = '✅ Berhasil';
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 2500);
+                }
+                showNotification('✅ Gambar berhasil diupload!', 'success');
+            } catch (err) {
+                if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = '❌ Gagal upload'; }
+                showNotification('❌ ' + err.message, 'error');
+            } finally {
+                fileInput.value = '';
             }
         }
 
