@@ -18,9 +18,9 @@
         .back-btn { background: #1C1F26; border: 1px solid #333; color: #f59b00; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; display: none; }
         .back-btn:hover { background: #f59b00; color: #14151A; border-color: #f59b00; }
         .back-btn.visible { display: inline-flex; align-items: center; gap: 8px; }
-        .admin-toggle { background: #1C1F26; border: 1px solid #333; color: #f59b00; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
-        .admin-toggle:hover { background: #f59b00; color: #14151A; border-color: #f59b00; }
-        .admin-toggle.active { background: #f59b00; color: #14151A; }
+        .admin-toggle { background: transparent; border: 1px solid transparent; color: transparent; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .admin-toggle:hover, .admin-toggle:active, .admin-toggle.active { background: transparent; color: transparent; border-color: transparent; }
+        .admin-toggle i { visibility: hidden; }
         .breadcrumb { max-width: 1200px; margin: 0 auto 20px; color: #555; font-size: 14px; display: none; }
         .breadcrumb.visible { display: block; }
         .breadcrumb span { color: #f59b00; }
@@ -2105,6 +2105,13 @@
                 });
                 const exists = await checkResponse.json();
                 if (exists && exists.length > 0) {
+                    // PENTING: jangan pernah ikut kirim field "password" di sini.
+                    // saveToCloud() ini dipanggil oleh SEMUA orang (pengunjung biasa
+                    // yang nonton video / like, bukan cuma admin), dan variabel
+                    // adminPassword di browser mereka bisa saja versi lama/basi.
+                    // Kalau field password ikut dikirim, password terbaru yang sudah
+                    // diganti admin bisa ketimpa balik ke versi lama tanpa disadari.
+                    // Ganti password HANYA lewat changePassword() -> savePasswordToCloud().
                     await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
                         method: 'PATCH',
                         headers: {
@@ -2113,7 +2120,7 @@
                             'Content-Type': 'application/json',
                             'Prefer': 'return=minimal'
                         },
-                        body: JSON.stringify({ password: adminPassword, videos: data, updated_at: new Date().toISOString() })
+                        body: JSON.stringify({ videos: data, updated_at: new Date().toISOString() })
                     });
                 } else {
                     await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}`, {
@@ -2204,12 +2211,36 @@
             if (e.target === this) this.classList.remove('visible');
         });
 
+        // Simpan password ADMIN SAJA, terpisah dari data video. Ini satu-satunya
+        // tempat yang boleh menulis field "password" ke Supabase, supaya tidak
+        // pernah ketimpa balik oleh aktivitas pengunjung biasa (lihat catatan di saveToCloud).
+        async function savePasswordToCloud(newPassword) {
+            try {
+                await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ password: newPassword, updated_at: new Date().toISOString() })
+                });
+                localStorage.setItem('adminPassword', newPassword);
+                return true;
+            } catch (error) {
+                console.error('Error saving password to cloud:', error);
+                localStorage.setItem('adminPassword', newPassword);
+                return false;
+            }
+        }
+
         async function changePassword() {
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login terlebih dahulu!', 'error'); return; }
             const newPass = prompt('Masukkan password baru (minimal 4 karakter):');
             if (newPass && newPass.length >= 4) {
                 adminPassword = newPass;
-                await saveToCloud();
+                await savePasswordToCloud(newPass);
                 showNotification('✅ Password berhasil diubah!', 'success');
             } else if (newPass !== null) {
                 showNotification('❌ Password minimal 4 karakter!', 'error');
