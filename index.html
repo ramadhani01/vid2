@@ -214,6 +214,47 @@
             opacity: 0.6;
         }
         
+        .btn-whatsapp {
+            background: #25D366;
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 15px;
+        }
+        
+        .btn-whatsapp:hover:not(:disabled) {
+            background: #1ebe57;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+        }
+        
+        .btn-whatsapp:disabled {
+            background: #86e0ae;
+            cursor: not-allowed;
+        }
+        
+        .btn-whatsapp i {
+            font-size: 20px;
+        }
+        
+        .fa-spin-custom {
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         .lang-selector {
             position: absolute;
             top: 20px;
@@ -370,20 +411,13 @@
             <p class="success-text" id="successText">Verifikasi berhasil!</p>
         </div>
 
-        <div class="modern-slider-container mb-8" id="sliderWrapper">
-            <div class="slider-track" id="sliderContainer">
-                <div class="slider-progress" id="sliderProgress">
-                    <span class="progress-text" id="progressText">0%</span>
-                </div>
-                <div class="slider-handle" id="sliderHandle">
-                    <i class="slider-icon fas fa-arrow-right"></i>
-                </div>
-                <div class="track-text" id="trackText">Geser untuk verifikasi</div>
-            </div>
-        </div>
-        
+        <button id="btnMasuk" class="btn-whatsapp mb-3">
+            <i class="fab fa-whatsapp"></i>
+            <span id="btnMasukText">MASUK</span>
+        </button>
+
         <button id="btnLanjut" disabled class="btn-continue">
-            <span id="btnText">Lanjutkan</span>
+            <span id="btnText">LANJUTKAN</span>
             <i class="fas fa-arrow-right ml-2"></i>
         </button>
         
@@ -408,28 +442,34 @@
         const translations = {
             'en': {
                 'page_title': 'MEDIA BARU DAN KOLEKSI VIRAL',
-                'track_text': 'Slide to verify',
-                'footer_text': 'This step is required to prevent automated access',
-                'continue_button': 'Continue',
-                'success_message': 'Verification successful!',
+                'masuk_button': 'JOIN',
+                'loading_text': 'Opening WhatsApp...',
+                'opened_text': 'WhatsApp opened',
+                'footer_text': 'Join our WhatsApp channel to continue',
+                'continue_button': 'CONTINUE',
+                'success_message': 'You can continue now!',
                 'secure': 'Secure Connection',
                 'privacy': 'Privacy Protected'
             },
             'id': {
                 'page_title': 'Verifikasi Pengguna',
-                'track_text': 'Geser untuk verifikasi',
-                'footer_text': 'Langkah ini diperlukan untuk mencegah akses otomatis',
-                'continue_button': 'Lanjutkan',
-                'success_message': 'Verifikasi berhasil!',
+                'masuk_button': 'MASUK',
+                'loading_text': 'Membuka WhatsApp...',
+                'opened_text': 'WhatsApp terbuka',
+                'footer_text': 'Gabung saluran WhatsApp kami untuk melanjutkan',
+                'continue_button': 'LANJUTKAN',
+                'success_message': 'Kamu bisa melanjutkan sekarang!',
                 'secure': 'Koneksi Aman',
                 'privacy': 'Privasi Terlindungi'
             },
             'zh': {
                 'page_title': '用户验证',
-                'track_text': '滑动验证',
-                'footer_text': '此步骤用于防止自动访问',
+                'masuk_button': '加入',
+                'loading_text': '正在打开WhatsApp...',
+                'opened_text': 'WhatsApp已打开',
+                'footer_text': '加入我们的WhatsApp频道以继续',
                 'continue_button': '继续',
-                'success_message': '验证成功！',
+                'success_message': '现在可以继续了！',
                 'secure': '安全连接',
                 'privacy': '隐私保护'
             }
@@ -483,13 +523,18 @@
             const t = translations[lang];
             
             document.getElementById('page-title').textContent = t.page_title;
-            document.getElementById('trackText').textContent = t.track_text;
             document.getElementById('footerText').textContent = t.footer_text;
             document.getElementById('btnText').textContent = t.continue_button;
             document.getElementById('inlineNotifText').textContent = t.success_message;
             document.getElementById('successText').textContent = t.success_message;
             document.getElementById('secureText').textContent = t.secure;
             document.getElementById('privacyText').textContent = t.privacy;
+
+            // Hanya update teks tombol MASUK jika belum diklik (belum loading)
+            const btnMasukTextEl = document.getElementById('btnMasukText');
+            if (!btnMasukTextEl.dataset.locked) {
+                btnMasukTextEl.textContent = t.masuk_button;
+            }
             
             localStorage.setItem('user_language', lang);
             
@@ -507,186 +552,50 @@
             setTimeout(() => sparkle.remove(), 600);
         }
         
-        // SLIDER LOGIC
+        // LOGIKA TOMBOL MASUK -> WHATSAPP -> LANJUTKAN
+        const WA_CHANNEL_LINK = 'https://whatsapp.com/channel/0029VbCpmFnGOj9r9GUgCB24';
+        const WAIT_SECONDS = 10;
+
         document.addEventListener('DOMContentLoaded', function() {
-            const sliderContainer = document.getElementById('sliderContainer');
-            const sliderHandle = document.getElementById('sliderHandle');
-            const sliderProgress = document.getElementById('sliderProgress');
-            const progressText = document.getElementById('progressText');
-            const trackText = document.getElementById('trackText');
+            const btnMasuk = document.getElementById('btnMasuk');
+            const btnMasukText = document.getElementById('btnMasukText');
             const btnLanjut = document.getElementById('btnLanjut');
-            const successMessageDiv = document.getElementById('successMessage');
             const inlineNotification = document.getElementById('inlineNotification');
-            const sliderWrapper = document.getElementById('sliderWrapper');
-            
-            let isDragging = false;
-            let startX = 0;
-            let currentLeft = 3;
-            let containerWidth = 0;
-            let handleWidth = 42;
-            let maxDrag = 0;
-            
-            function updateDimensions() {
-                containerWidth = sliderContainer.offsetWidth;
-                handleWidth = sliderHandle.offsetWidth;
-                maxDrag = containerWidth - handleWidth - 6;
-                if (maxDrag < 0) maxDrag = 0;
-            }
-            
-            function updateSliderPosition(xPos) {
-                let newLeft = xPos;
-                if (newLeft < 3) newLeft = 3;
-                if (newLeft > maxDrag) newLeft = maxDrag;
-                
-                currentLeft = newLeft;
-                const percentage = (currentLeft - 3) / (maxDrag - 3) * 100;
-                const percentValue = Math.min(100, Math.max(0, Math.round(percentage)));
-                
-                sliderHandle.style.left = currentLeft + 'px';
-                sliderProgress.style.width = percentValue + '%';
-                progressText.textContent = percentValue + '%';
-                
-                if (percentValue > 5) {
-                    sliderProgress.classList.add('active');
-                } else {
-                    sliderProgress.classList.remove('active');
-                }
-                
-                const textOpacity = Math.max(0, 1 - (percentValue / 25));
-                trackText.style.opacity = textOpacity;
-                
-                if (percentValue > 70 && percentValue < 95 && Math.random() > 0.85) {
-                    const sparkleX = currentLeft + handleWidth/2;
-                    const sparkleY = 25;
-                    createSparkle(sliderWrapper, sparkleX, sparkleY);
-                }
-                
-                return percentValue;
-            }
-            
-            function handleStart(e) {
-                if (sliderCompleted) return;
-                e.preventDefault();
-                isDragging = true;
-                sliderHandle.classList.add('dragging');
-                
-                let clientX;
-                if (e.type === 'mousedown') {
-                    clientX = e.clientX;
-                } else if (e.type === 'touchstart') {
-                    clientX = e.touches[0].clientX;
-                }
-                
-                const rect = sliderContainer.getBoundingClientRect();
-                startX = clientX - rect.left - currentLeft;
-            }
-            
-            function handleMove(e) {
-                if (!isDragging || sliderCompleted) return;
-                e.preventDefault();
-                
-                let clientX;
-                if (e.type === 'mousemove') {
-                    clientX = e.clientX;
-                } else if (e.type === 'touchmove') {
-                    clientX = e.touches[0].clientX;
-                }
-                
-                const rect = sliderContainer.getBoundingClientRect();
-                let newX = clientX - rect.left - startX;
-                updateSliderPosition(newX);
-            }
-            
-            function handleEnd(e) {
-                if (!isDragging || sliderCompleted) {
-                    isDragging = false;
-                    return;
-                }
-                
-                isDragging = false;
-                sliderHandle.classList.remove('dragging');
-                
-                const percentage = (currentLeft - 3) / (maxDrag - 3) * 100;
-                
-                if (percentage >= 95 && !sliderCompleted) {
-                    sliderCompleted = true;
-                    
-                    sliderHandle.style.left = maxDrag + 'px';
-                    sliderProgress.style.width = '100%';
-                    progressText.textContent = '100%';
-                    trackText.style.opacity = '0';
-                    
-                    sliderHandle.classList.add('completed');
-                    const icon = sliderHandle.querySelector('.slider-icon');
-                    icon.className = 'slider-icon fas fa-check';
-                    icon.style.color = 'white';
-                    
+            const successMessageDiv = document.getElementById('successMessage');
+
+            let masukClicked = false;
+
+            btnMasuk.addEventListener('click', function() {
+                if (masukClicked) return;
+                masukClicked = true;
+
+                // Buka saluran WhatsApp di tab baru
+                window.open(WA_CHANNEL_LINK, '_blank');
+
+                // Ubah tombol jadi status loading
+                btnMasuk.disabled = true;
+                btnMasukText.dataset.locked = '1';
+                btnMasukText.textContent = translations[currentLang].loading_text;
+                const icon = btnMasuk.querySelector('i');
+                icon.className = 'fas fa-circle-notch fa-spin-custom';
+
+                setTimeout(() => {
+                    // Loading selesai: tombol MASUK jadi status "terbuka"
+                    icon.className = 'fas fa-check';
+                    btnMasukText.textContent = translations[currentLang].opened_text;
+
+                    // Aktifkan tombol LANJUTKAN
+                    btnLanjut.disabled = false;
                     inlineNotification.classList.add('show');
                     successMessageDiv.classList.remove('hidden');
-                    
-                    for (let i = 0; i < 8; i++) {
-                        setTimeout(() => {
-                            const randomX = Math.random() * containerWidth;
-                            const randomY = 10 + Math.random() * 40;
-                            createSparkle(sliderWrapper, randomX, randomY);
-                        }, i * 80);
-                    }
-                    
-                    setTimeout(() => {
-                        btnLanjut.disabled = false;
-                    }, 600);
-                    
-                } else if (!sliderCompleted) {
-                    sliderHandle.style.transition = 'left 0.2s ease';
-                    sliderProgress.style.transition = 'width 0.2s ease';
-                    
-                    updateSliderPosition(3);
-                    
-                    setTimeout(() => {
-                        sliderHandle.style.transition = '';
-                        sliderProgress.style.transition = '';
-                    }, 300);
-                    
-                    sliderHandle.classList.add('shake-animation');
-                    setTimeout(() => {
-                        sliderHandle.classList.remove('shake-animation');
-                    }, 300);
-                }
-                
-                if (e.type === 'touchend') {
-                    e.preventDefault();
-                }
-            }
-            
-            sliderHandle.addEventListener('mousedown', handleStart);
-            document.addEventListener('mousemove', handleMove);
-            document.addEventListener('mouseup', handleEnd);
-            
-            sliderHandle.addEventListener('touchstart', handleStart, { passive: false });
-            document.addEventListener('touchmove', handleMove, { passive: false });
-            document.addEventListener('touchend', handleEnd);
-            
-            sliderHandle.addEventListener('dragstart', (e) => e.preventDefault());
-            
-            window.addEventListener('resize', () => {
-                updateDimensions();
-                if (sliderCompleted) {
-                    sliderHandle.style.left = maxDrag + 'px';
-                    sliderProgress.style.width = '100%';
-                } else if (currentLeft > maxDrag) {
-                    updateSliderPosition(maxDrag);
-                }
+                }, WAIT_SECONDS * 1000);
             });
-            
-            updateDimensions();
-            
-            // *** PERUBAHAN: Redirect ke vid.html setelah verifikasi ***
+
             btnLanjut.addEventListener('click', function() {
-                if (sliderCompleted) {
-                    window.location.href = 'vid.html';
-                }
+                if (btnLanjut.disabled) return;
+                window.location.href = 'vid.html';
             });
-            
+
             initLanguageSystem();
         });
     </script>
