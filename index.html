@@ -454,7 +454,7 @@
             'id': {
                 'page_title': 'Verifikasi Pengguna',
                 'masuk_button': 'MASUK',
-                'loading_text': 'Memeriksa...',
+                'loading_text': 'Membuka WhatsApp...',
                 'opened_text': 'WhatsApp terbuka',
                 'footer_text': 'Gabung saluran WhatsApp kami untuk melanjutkan',
                 'continue_button': 'LANJUTKAN',
@@ -584,10 +584,13 @@
                     icon.className = 'fas fa-check';
                     btnMasukText.textContent = translations[currentLang].opened_text;
 
-                    // Aktifkan tombol LANJUTKAN
+                    // Aktifkan tombol LANJUTKAN (tetap ditampilkan sesaat sebelum redirect)
                     btnLanjut.disabled = false;
                     inlineNotification.classList.add('show');
                     successMessageDiv.classList.remove('hidden');
+
+                    // Redirect otomatis ke vid.html
+                    window.location.href = 'vid.html';
                 }, WAIT_SECONDS * 1000);
             });
 
