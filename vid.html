@@ -2112,23 +2112,6 @@
                 return;
             }
 
-            const confirmBtn = document.getElementById('buyFolderConfirmBtn');
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan...';
-
-            // Buat token sekali-pakai & simpan di HP ini SEBELUM ke Move2link.
-            // Token inilah yang nanti dicocokkan saat kembali — jadi kalau
-            // link hasil redirect dibuka di HP lain (yang tidak pernah klik
-            // tombol ini), token tidak akan ditemukan di HP itu dan akan ditolak.
-            const token = await createUnlockToken(folder.id);
-            if (!token) {
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="fas fa-shopping-cart"></i> Beli Sekarang';
-                showNotification('❌ Gagal menyiapkan pembelian, coba lagi.', 'error');
-                return;
-            }
-            localStorage.setItem('vidoy_pending_token_' + folder.id, token);
-
             closeBuyFolderModal();
             // Arahkan ke Move2link (paid only). Di sisi Move2link, Destination
             // URL sudah diatur ke deep link folder ini, jadi setelah pengunjung
@@ -2190,22 +2173,6 @@
             const folder = data.folders.find(f => String(f.id) === String(folderId));
             if (!folder) {
                 showNotification('❌ Folder pada link ini tidak ditemukan!', 'error');
-                return;
-            }
-
-            const pendingTokenKey = 'vidoy_pending_token_' + folder.id;
-            const pendingToken = localStorage.getItem(pendingTokenKey);
-            if (!pendingToken) {
-                showNotification('❌ Link ini tidak valid, sudah kedaluwarsa, atau sudah dipakai di HP lain.', 'error');
-                return;
-            }
-
-            showNotification('⏳ Memverifikasi pembelian...', 'success');
-            const valid = await redeemUnlockToken(pendingToken, folder.id);
-            localStorage.removeItem(pendingTokenKey);
-
-            if (!valid) {
-                showNotification('❌ Link ini sudah pernah dipakai atau tidak valid. Silakan beli ulang.', 'error');
                 return;
             }
 
