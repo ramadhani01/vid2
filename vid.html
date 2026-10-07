@@ -1777,6 +1777,24 @@
             }
         }
 
+        function getUnlockedVideoIds() {
+            try {
+                return JSON.parse(localStorage.getItem('vidoy_unlocked_videos') || '[]');
+            } catch (e) { return []; }
+        }
+
+        function isVideoUnlocked(videoId) {
+            return getUnlockedVideoIds().map(String).includes(String(videoId));
+        }
+
+        function unlockVideoLocally(videoId) {
+            const ids = getUnlockedVideoIds();
+            if (!ids.map(String).includes(String(videoId))) {
+                ids.push(videoId);
+                localStorage.setItem('vidoy_unlocked_videos', JSON.stringify(ids));
+            }
+        }
+
         function getLikedVideoIds() {
             try {
                 return JSON.parse(localStorage.getItem('vidoy_liked_ids') || '[]');
@@ -1951,7 +1969,7 @@
             loading.style.display = 'none';
             errorBox.classList.remove('visible');
             document.getElementById('previewGateOverlay').classList.remove('visible');
-            previewGatePassed = !!item.noPreview || unlockedByPaidFolder;
+            previewGatePassed = !!item.noPreview || unlockedByPaidFolder || isVideoUnlocked(item.id);
             setFullscreenAllowed(previewGatePassed);
 
             document.getElementById('videoDetailCard').style.display = 'block';
@@ -2152,6 +2170,7 @@
                 currentFolderId = found.folderId;
             }
 
+            unlockVideoLocally(found.video.id);
             playVideo(found.video.id, found.isFolderView, true);
             previewGatePassed = true; // lewati preview gate, video ini sudah "dibuka"
             setFullscreenAllowed(true);
@@ -2864,7 +2883,9 @@
                             <img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
                             ${item.noPreview
                                 ? `<div class="video-paid-badge free"><i class="fas fa-unlock"></i> FREE</div>`
-                                : `<div class="video-paid-badge paid"><i class="fas fa-lock"></i> PAID</div>`}
+                                : (isVideoUnlocked(item.id)
+                                    ? `<div class="video-paid-badge free"><i class="fas fa-unlock"></i> DIBELI</div>`
+                                    : `<div class="video-paid-badge paid"><i class="fas fa-lock"></i> PAID</div>`)}
                         </div>
                         <div class="info">
                             <h3 title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</h3>
