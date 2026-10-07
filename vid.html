@@ -923,6 +923,49 @@
             .folder-card .thumb .folder-count-badge { font-size: 8px; padding: 2px 6px; }
             .folder-card .info { min-height: 40px; padding: 6px 8px; }
         }
+        /* ===== FOTO DI DALAM FOLDER ===== */
+        .grid-section-label { grid-column: 1 / -1; color: #888; font-size: 13px; padding: 6px 2px 0; display: flex; align-items: center; gap: 8px; }
+        .grid-section-label i { color: #f59b00; }
+        .photo-card .thumb .photo-badge {
+            position: absolute; top: 8px; right: 8px;
+            background: rgba(59, 130, 246, 0.92); color: #fff;
+            padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold;
+            z-index: 2; display: flex; align-items: center; gap: 4px;
+        }
+        .photo-card.locked .thumb img { filter: blur(14px); transform: scale(1.12); }
+        .photo-card.locked:hover .thumb img { transform: scale(1.12); }
+        .photo-lock-overlay {
+            position: absolute; inset: 0; z-index: 1;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(10, 11, 14, 0.45); color: #f59b00; font-size: 30px;
+        }
+        .photo-lightbox {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.94); z-index: 9990;
+            align-items: center; justify-content: center;
+        }
+        .photo-lightbox.visible { display: flex; }
+        .photo-lightbox img {
+            max-width: 100vw; max-height: calc(100vh - 110px);
+            object-fit: contain; user-select: none; -webkit-user-drag: none;
+        }
+        .pl-btn {
+            position: absolute; background: rgba(10, 10, 10, 0.85);
+            border: 1px solid #f59b00; color: #f59b00;
+            width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+            font-size: 16px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s; z-index: 2;
+        }
+        .pl-btn:hover { background: #f59b00; color: #14151A; }
+        .pl-close { top: 14px; right: 14px; }
+        .pl-prev { left: 14px; top: 50%; transform: translateY(-50%); }
+        .pl-next { right: 14px; top: 50%; transform: translateY(-50%); }
+        .pl-caption { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: #ddd; font-size: 14px; padding: 0 70px; }
+        .pl-caption small { display: block; color: #888; font-size: 12px; margin-top: 3px; }
+        @media (max-width: 600px) {
+            .pl-btn { width: 36px; height: 36px; font-size: 14px; }
+            .pl-caption { padding: 0 20px; }
+        }
     </style>
 </head>
 <body>
@@ -1134,10 +1177,11 @@
     <div class="admin-panel" id="adminPanel">
         <h2><i class="fas fa-cog"></i> Panel Admin</h2>
         <div class="admin-tabs">
-            <button class="admin-tab active" onclick="switchTab('video')"><i class="fas fa-video"></i> Tambah Video</button>
-            <button class="admin-tab" onclick="switchTab('folder')"><i class="fas fa-folder"></i> Tambah Folder</button>
-            <button class="admin-tab" onclick="switchTab('banner')"><i class="fas fa-image"></i> Tambah Banner</button>
-            <button class="admin-tab" onclick="switchTab('manage')"><i class="fas fa-list"></i> Kelola</button>
+            <button class="admin-tab active" data-tab="video" onclick="switchTab('video')"><i class="fas fa-video"></i> Tambah Video</button>
+            <button class="admin-tab" data-tab="folder" onclick="switchTab('folder')"><i class="fas fa-folder"></i> Tambah Folder</button>
+            <button class="admin-tab" data-tab="photo" onclick="switchTab('photo')"><i class="fas fa-image"></i> Tambah Foto</button>
+            <button class="admin-tab" data-tab="banner" onclick="switchTab('banner')"><i class="fas fa-image"></i> Tambah Banner</button>
+            <button class="admin-tab" data-tab="manage" onclick="switchTab('manage')"><i class="fas fa-list"></i> Kelola</button>
         </div>
 
         <!-- Form Tambah Video -->
@@ -1237,6 +1281,36 @@
                 </div>
                 <button type="submit" class="btn-submit" id="btnAddFolder">
                     <i class="fas fa-folder-plus"></i> Buat Folder
+                </button>
+            </form>
+        </div>
+
+        <!-- Form Tambah Foto -->
+        <div class="admin-form" id="formPhoto">
+            <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Foto ke Folder</h3>
+            <p style="color:#666; font-size:12px; margin-bottom:15px;">
+                <i class="fas fa-info-circle"></i> Foto hanya bisa ditambahkan ke dalam folder (tidak tampil di Root). Bisa pilih banyak foto sekaligus.
+            </p>
+            <form id="addPhotoForm">
+                <div class="form-group">
+                    <label>Simpan di Folder</label>
+                    <select id="photoFolder" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Judul Foto (Opsional — kalau upload banyak foto, judul diambil dari nama file)</label>
+                    <input type="text" id="photoTitle" placeholder="Misal: Foto 1">
+                </div>
+                <div class="form-group">
+                    <label>Upload File Foto (bisa pilih banyak sekaligus)</label>
+                    <input type="file" id="photoFiles" accept="image/*" multiple>
+                    <span id="photoUploadStatus" style="display:none; font-size:12px; margin-top:6px; color:#888;"></span>
+                </div>
+                <div class="form-group">
+                    <label>Atau URL Foto Langsung (opsional)</label>
+                    <input type="url" id="photoUrl" placeholder="https://example.com/foto.jpg">
+                </div>
+                <button type="submit" class="btn-submit" id="btnAddPhoto">
+                    <i class="fas fa-image"></i> Tambahkan Foto
                 </button>
             </form>
         </div>
@@ -1398,6 +1472,15 @@
             </p>
             <button type="button" class="btn-submit" id="buyFolderConfirmBtn" onclick="proceedToBuyFolder()"><i class="fas fa-shopping-cart"></i> Beli Sekarang</button>
         </div>
+    </div>
+
+    <!-- PHOTO LIGHTBOX -->
+    <div class="photo-lightbox" id="photoLightbox" onclick="if(event.target === this) closePhotoViewer();">
+        <button type="button" class="pl-btn pl-close" onclick="closePhotoViewer()" aria-label="Tutup"><i class="fas fa-times"></i></button>
+        <button type="button" class="pl-btn pl-prev" id="photoPrevBtn" onclick="stepPhoto(-1)" aria-label="Sebelumnya"><i class="fas fa-chevron-left"></i></button>
+        <img id="photoLightboxImg" src="" alt="" draggable="false" oncontextmenu="return false" ondragstart="return false">
+        <button type="button" class="pl-btn pl-next" id="photoNextBtn" onclick="stepPhoto(1)" aria-label="Berikutnya"><i class="fas fa-chevron-right"></i></button>
+        <div class="pl-caption" id="photoLightboxCaption"></div>
     </div>
 
     <div class="footer">Made with <i class="fas fa-heart"></i> by Vidoy Stream</div>
@@ -2190,7 +2273,7 @@
                     if (data.settings.previewSeconds === undefined || data.settings.previewSeconds === null) data.settings.previewSeconds = 5;
                     if (data.settings.adLink === undefined || data.settings.adLink === null) data.settings.adLink = '';
                     if (!data.rootBanners) data.rootBanners = [];
-                    data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
+                    data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; if (!Array.isArray(f.photos)) f.photos = []; });
                 } else {
                     await saveToCloud();
                 }
@@ -2208,7 +2291,7 @@
                         if (data.settings.previewSeconds === undefined || data.settings.previewSeconds === null) data.settings.previewSeconds = 5;
                         if (data.settings.adLink === undefined || data.settings.adLink === null) data.settings.adLink = '';
                         if (!data.rootBanners) data.rootBanners = [];
-                        data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
+                        data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; if (!Array.isArray(f.photos)) f.photos = []; });
                     } catch (e) {}
                 }
                 return false;
@@ -2536,6 +2619,8 @@
             document.getElementById('backBtn').classList.add('visible');
             document.getElementById('breadcrumb').classList.add('visible');
             document.getElementById('currentFolder').textContent = folder.name;
+            const photoSel = document.getElementById('photoFolder');
+            if (photoSel) photoSel.value = folder.id;
         }
 
         // ==========================================================
@@ -2550,6 +2635,7 @@
                 const firstWithThumb = folder.videos.find(v => v.thumbnail && v.thumbnail.trim() !== '');
                 if (firstWithThumb) return firstWithThumb.thumbnail;
             }
+            if (folder.photos && folder.photos.length > 0 && folder.photos[0].url) return folder.photos[0].url;
             return '';
         }
 
@@ -2562,13 +2648,17 @@
             const showDelete = isAdminLoggedIn && document.getElementById('adminPanel').classList.contains('visible');
             const totalItems = items ? items.length : 0;
 
-            if (!items || items.length === 0) {
-                grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video di sini</p></div>`;
+            // Foto hanya ada di dalam folder
+            const folderObj = isFolderView ? data.folders.find(f => f.id === currentFolderId) : null;
+            const photos = (folderObj && Array.isArray(folderObj.photos)) ? folderObj.photos : [];
+
+            if ((!items || items.length === 0) && photos.length === 0) {
+                grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video atau foto di sini</p></div>`;
                 document.getElementById('totalCount').textContent = '0';
                 return;
             }
 
-            grid.innerHTML = items.map((v, idx) => `
+            const videosHtml = (items || []).map((v, idx) => `
                 <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${v.id}', ${isFolderView}); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
                     ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${v.id}', ${isFolderView})"><i class="fas fa-pen"></i></button>` : ''}
@@ -2591,7 +2681,121 @@
                 </div>
             `).join('');
 
-            document.getElementById('totalCount').textContent = items.length;
+            const photosHtml = photos.length ? renderPhotoCards(folderObj, photos, showDelete) : '';
+            const bothShown = videosHtml !== '' && photosHtml !== '';
+            const videoLabel = bothShown ? `<div class="grid-section-label"><i class="fas fa-video"></i> Video (${items.length})</div>` : '';
+            const photoLabel = bothShown ? `<div class="grid-section-label"><i class="fas fa-image"></i> Foto (${photos.length})</div>` : '';
+
+            grid.innerHTML = videoLabel + videosHtml + photoLabel + photosHtml;
+
+            document.getElementById('totalCount').textContent = totalItems;
+        }
+
+        // ==========================================================
+        // FOTO (hanya di dalam folder)
+        // ==========================================================
+        function renderPhotoCards(folder, photos, showDelete) {
+            const locked = !!(folder && folder.paid && !isFolderUnlocked(folder.id));
+            return photos.map(p => `
+                <div class="video-card photo-card ${locked ? 'locked' : ''}" data-id="${p.id}" onclick="if(!event.target.closest('.delete-btn')) { openPhoto('${p.id}'); }">
+                    ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deletePhoto('${p.id}')"><i class="fas fa-times"></i></button>` : ''}
+                    <div class="thumb">
+                        <img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.title)}" loading="lazy" draggable="false" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
+                        ${locked ? `<div class="photo-lock-overlay"><i class="fas fa-lock"></i></div>` : ''}
+                        <div class="photo-badge"><i class="fas fa-image"></i> FOTO</div>
+                    </div>
+                    <div class="info">
+                        <h3 title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</h3>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        let photoViewerList = [];
+        let photoViewerIndex = 0;
+        let photoTouchStartX = null;
+
+        function openPhoto(photoId) {
+            const folder = data.folders.find(f => f.id === currentFolderId);
+            if (!folder) return;
+
+            // Folder berbayar & belum dibeli di HP ini: minta beli dulu (sama seperti video)
+            if (folder.paid && !isFolderUnlocked(folder.id)) {
+                openBuyFolderModal(folder);
+                return;
+            }
+
+            const list = Array.isArray(folder.photos) ? folder.photos : [];
+            const idx = list.findIndex(p => String(p.id) === String(photoId));
+            if (idx === -1) { showNotification('❌ Foto tidak ditemukan!', 'error'); return; }
+
+            photoViewerList = list;
+            photoViewerIndex = idx;
+            showPhotoAt(idx);
+            document.getElementById('photoLightbox').classList.add('visible');
+        }
+
+        function showPhotoAt(i) {
+            const p = photoViewerList[i];
+            if (!p) return;
+            const img = document.getElementById('photoLightboxImg');
+            img.src = p.url;
+            img.alt = p.title || '';
+            const total = photoViewerList.length;
+            document.getElementById('photoLightboxCaption').innerHTML =
+                `${escapeHtml(p.title || '')}<small>${i + 1} / ${total}</small>`;
+            const showNav = total > 1;
+            document.getElementById('photoPrevBtn').style.display = showNav ? 'flex' : 'none';
+            document.getElementById('photoNextBtn').style.display = showNav ? 'flex' : 'none';
+        }
+
+        function stepPhoto(delta) {
+            const total = photoViewerList.length;
+            if (total < 2) return;
+            photoViewerIndex = (photoViewerIndex + delta + total) % total;
+            showPhotoAt(photoViewerIndex);
+        }
+
+        function closePhotoViewer() {
+            document.getElementById('photoLightbox').classList.remove('visible');
+            document.getElementById('photoLightboxImg').removeAttribute('src');
+            photoViewerList = [];
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (!document.getElementById('photoLightbox').classList.contains('visible')) return;
+            if (e.key === 'Escape') closePhotoViewer();
+            else if (e.key === 'ArrowLeft') stepPhoto(-1);
+            else if (e.key === 'ArrowRight') stepPhoto(1);
+        });
+
+        // Geser kiri/kanan di HP untuk ganti foto
+        (function() {
+            const lb = document.getElementById('photoLightbox');
+            lb.addEventListener('touchstart', function(e) {
+                photoTouchStartX = e.changedTouches[0].clientX;
+            }, { passive: true });
+            lb.addEventListener('touchend', function(e) {
+                if (photoTouchStartX === null) return;
+                const dx = e.changedTouches[0].clientX - photoTouchStartX;
+                photoTouchStartX = null;
+                if (Math.abs(dx) > 50) stepPhoto(dx < 0 ? 1 : -1);
+            }, { passive: true });
+        })();
+
+        async function deletePhoto(photoId) {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            const folder = data.folders.find(f => f.id === currentFolderId);
+            if (!folder || !Array.isArray(folder.photos)) { showNotification('❌ Foto tidak ditemukan!', 'error'); return; }
+            const idx = folder.photos.findIndex(p => String(p.id) === String(photoId));
+            if (idx === -1) { showNotification('❌ Foto tidak ditemukan!', 'error'); return; }
+            const title = folder.photos[idx].title || 'foto ini';
+            if (!confirm(`Yakin ingin menghapus foto "${title}"?`)) return;
+
+            folder.photos.splice(idx, 1);
+            await saveToCloud();
+            renderItems(folder.videos, true);
+            showNotification(`✅ Foto "${title}" dihapus`, 'success');
         }
 
         function renderCurrentView() {
@@ -2636,11 +2840,11 @@
                             ${item.paid ? (isFolderUnlocked(item.id)
                                 ? `<div class="folder-paid-badge unlocked"><i class="fas fa-unlock"></i> DIBELI</div>`
                                 : `<div class="folder-paid-badge locked"><i class="fas fa-lock"></i> PAID</div>`) : ''}
-                            <div class="folder-count-badge"><i class="fas fa-video"></i> ${item.videos.length}</div>
+                            <div class="folder-count-badge"><i class="fas fa-video"></i> ${item.videos.length}${(item.photos && item.photos.length) ? ` &nbsp;<i class="fas fa-image"></i> ${item.photos.length}` : ''}</div>
                         </div>
                         <div class="info">
                             <div class="folder-title">${escapeHtml(item.name)}</div>
-                            <div class="folder-sub">${item.videos.length} video dalam folder</div>
+                            <div class="folder-sub">${item.videos.length} video${(item.photos && item.photos.length) ? ' · ' + item.photos.length + ' foto' : ''} dalam folder</div>
                         </div>
                     </div>
                 `;
@@ -2797,19 +3001,10 @@
             if (!isAdminLoggedIn) return;
             document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.admin-form').forEach(f => f.classList.remove('active'));
-            if (tab === 'video') {
-                document.querySelector('.admin-tab:nth-child(1)').classList.add('active');
-                document.getElementById('formVideo').classList.add('active');
-            } else if (tab === 'folder') {
-                document.querySelector('.admin-tab:nth-child(2)').classList.add('active');
-                document.getElementById('formFolder').classList.add('active');
-            } else if (tab === 'banner') {
-                document.querySelector('.admin-tab:nth-child(3)').classList.add('active');
-                document.getElementById('formBanner').classList.add('active');
-            } else {
-                document.querySelector('.admin-tab:nth-child(4)').classList.add('active');
-                document.getElementById('formManage').classList.add('active');
-            }
+            const tabBtn = document.querySelector('.admin-tab[data-tab="' + tab + '"]');
+            if (tabBtn) tabBtn.classList.add('active');
+            const formEl = document.getElementById('form' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            if (formEl) formEl.classList.add('active');
         }
 
         function updateFolderSelect() {
@@ -2818,6 +3013,20 @@
             data.folders.forEach(f => {
                 select.innerHTML += `<option value="${f.id}">${escapeHtml(f.name)}</option>`;
             });
+
+            // Pilihan folder untuk foto: TANPA opsi Root (foto hanya boleh di dalam folder)
+            const photoSelect = document.getElementById('photoFolder');
+            if (photoSelect) {
+                const prev = photoSelect.value;
+                if (data.folders.length === 0) {
+                    photoSelect.innerHTML = '<option value="">Belum ada folder — buat folder dulu</option>';
+                } else {
+                    photoSelect.innerHTML = data.folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+                    const ids = data.folders.map(f => String(f.id));
+                    if (currentFolderId !== null && ids.includes(String(currentFolderId))) photoSelect.value = currentFolderId;
+                    else if (ids.includes(String(prev))) photoSelect.value = prev;
+                }
+            }
         }
 
         function toggleAddNoPreviewFields() {
@@ -2957,6 +3166,87 @@
             btn.innerHTML = '<i class="fas fa-folder-plus"></i> Buat Folder';
         });
 
+        document.getElementById('addPhotoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+
+            const folderId = document.getElementById('photoFolder').value;
+            const titleRaw = document.getElementById('photoTitle').value.trim();
+            const manualUrl = document.getElementById('photoUrl').value.trim();
+            const files = Array.from(document.getElementById('photoFiles').files || []);
+
+            if (!folderId) { showNotification('Pilih folder dulu! Foto hanya bisa ditambahkan ke dalam folder.', 'error'); return; }
+            const folder = data.folders.find(f => String(f.id) === String(folderId));
+            if (!folder) { showNotification('❌ Folder tidak ditemukan!', 'error'); return; }
+            if (files.length === 0 && !manualUrl) { showNotification('Upload file foto ATAU isi URL foto!', 'error'); return; }
+
+            const btn = document.getElementById('btnAddPhoto');
+            const statusEl = document.getElementById('photoUploadStatus');
+            btn.disabled = true;
+
+            const totalItems = files.length + (manualUrl ? 1 : 0);
+            const stamp = Date.now();
+            const now = new Date().toISOString();
+            const cleanName = (name) => name.replace(/\.[^.]+$/, '').replace(/[_\-]+/g, ' ').trim() || 'Foto';
+            const added = [];
+            let failed = 0;
+            let lastError = '';
+
+            for (let i = 0; i < files.length; i++) {
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengupload ${i + 1}/${files.length}...`;
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#888';
+                statusEl.textContent = `Foto ${i + 1}/${files.length}: 0%`;
+                try {
+                    const url = await uploadImageToImgbb(files[i], (pct) => {
+                        statusEl.textContent = `Foto ${i + 1}/${files.length}: ${pct}%`;
+                    });
+                    added.push({
+                        id: 'photo_' + stamp + '_' + i,
+                        title: (totalItems === 1 && titleRaw) ? titleRaw : cleanName(files[i].name),
+                        url, date: now
+                    });
+                } catch (err) {
+                    failed++;
+                    lastError = err.message;
+                }
+            }
+
+            if (manualUrl) {
+                added.push({
+                    id: 'photo_' + stamp + '_url',
+                    title: (totalItems === 1 && titleRaw) ? titleRaw : (titleRaw || 'Foto'),
+                    url: manualUrl, date: now
+                });
+            }
+
+            statusEl.style.display = 'none';
+
+            if (added.length === 0) {
+                showNotification('❌ ' + (lastError || 'Semua foto gagal diupload.'), 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-image"></i> Tambahkan Foto';
+                return;
+            }
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            if (!Array.isArray(folder.photos)) folder.photos = [];
+            added.forEach(p => folder.photos.push(p));
+            await saveToCloud();
+
+            const failNote = failed > 0 ? ` (${failed} gagal diupload)` : '';
+            showNotification(`✅ ${added.length} foto ditambahkan ke folder "${folder.name}"${failNote}`, failed > 0 ? 'error' : 'success');
+
+            this.reset();
+            updateFolderSelect();
+            if (!videoViewActive) {
+                if (currentFolderId === folder.id) renderItems(folder.videos, true);
+                else if (currentFolderId === null) renderCurrentView();
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-image"></i> Tambahkan Foto';
+        });
+
         document.getElementById('addBannerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
@@ -3083,7 +3373,7 @@
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
             const folder = data.folders.find(f => f.id === folderId);
             if (!folder) { showNotification('❌ Folder tidak ditemukan!', 'error'); return; }
-            if (!confirm(`Yakin ingin menghapus folder "${folder.name}"? Semua video di dalamnya (${folder.videos.length} video) akan terhapus!`)) return;
+            if (!confirm(`Yakin ingin menghapus folder "${folder.name}"? Semua isi di dalamnya (${folder.videos.length} video, ${(folder.photos || []).length} foto) akan terhapus!`)) return;
 
             try {
                 const index = data.folders.findIndex(f => f.id === folderId);
@@ -3326,7 +3616,7 @@
                         if (!data.banner.desc) data.banner.desc = 'Deskripsi banner di sini';
                         if (!data.settings) data.settings = { previewSeconds: 5, adLink: 'https://move2link.co/e85096e' };
                         if (!data.rootBanners) data.rootBanners = [];
-                        data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; });
+                        data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; if (!Array.isArray(f.photos)) f.photos = []; });
                         await saveToCloud();
                         goHome();
                         updateFolderSelect();
