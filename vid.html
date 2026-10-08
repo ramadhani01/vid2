@@ -2088,12 +2088,17 @@
 
         function setFullscreenAllowed(allowed) {
             const player = document.getElementById('detailVideo');
-            if (!player) return;
-            if (allowed) {
-                player.controlsList.remove('nofullscreen');
-            } else {
-                player.controlsList.add('nofullscreen');
-            }
+            // Safari/iPhone tidak punya properti controlsList (undefined), jadi
+            // harus dicek dulu — kalau tidak, error ini menghentikan playVideo()
+            // sebelum pemutar sempat ditampilkan.
+            if (!player || !player.controlsList) return;
+            try {
+                if (allowed) {
+                    player.controlsList.remove('nofullscreen');
+                } else {
+                    player.controlsList.add('nofullscreen');
+                }
+            } catch (e) {}
         }
 
         // ==========================================================
