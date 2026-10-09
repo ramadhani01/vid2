@@ -1842,7 +1842,7 @@
 
             document.getElementById('detailLikes').textContent = currentDetailVideo.likes.toLocaleString('id-ID');
             updateLikeButtonState();
-            await saveToCloud();
+            await updateCounter(currentDetailVideo.id, 'likes', alreadyLiked ? -1 : 1);
         }
 
         function autoFillVideoSize(input) {
@@ -1874,6 +1874,7 @@
             }
         };
         let isLoading = false;
+        let cloudLoaded = false; // true hanya kalau data berhasil dibaca dari cloud (mencegah menimpa cloud dengan data kosong/basi)
 
         // Helper untuk escape teks agar aman disisipkan ke HTML/atribut
         function escapeHtml(str) {
@@ -1985,7 +1986,7 @@
             // hitung view baru & simpan, hanya saat benar-benar mulai diputar
             item.views = (item.views || 0) + 1;
             document.getElementById('detailViews').textContent = item.views.toLocaleString('id-ID');
-            saveToCloud();
+            updateCounter(item.id, 'views', 1);
 
             const poster = document.getElementById('videoDetailPoster');
             const player = document.getElementById('detailVideo');
@@ -2255,6 +2256,7 @@
                 if (!response.ok) throw new Error('Gagal mengambil data');
                 const result = await response.json();
                 if (result && result.length > 0) {
+                    cloudLoaded = true;
                     const cloudData = result[0];
                     adminPassword = cloudData.password || 'admin123';
                     data = cloudData.videos || { folders: [], rootVideos: [], banner: { title: 'Product', desc: 'Deskripsi banner di sini', bought: 0, thumbnail: '', link: '' } };
@@ -2266,6 +2268,7 @@
                     if (!data.rootBanners) data.rootBanners = [];
                     data.folders.forEach(f => { if (!f.thumbnail) f.thumbnail = ''; if (!Array.isArray(f.photos)) f.photos = []; });
                 } else {
+                    cloudLoaded = true; // record memang belum ada -> boleh dibuat pertama kali
                     await saveToCloud();
                 }
                 return true;
@@ -2292,7 +2295,42 @@
             }
         }
 
+        // Update angka (views/likes) tanpa menimpa data lain.
+        // Selalu ambil data TERBARU dari cloud, ubah angkanya saja, lalu simpan.
+        // Dipakai oleh pengunjung biasa supaya tidak menghapus video/folder yang baru ditambah admin.
+        async function updateCounter(videoId, field, delta) {
+            try {
+                const h = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}&select=videos`, { headers: h });
+                if (!res.ok) return false;
+                const rows = await res.json();
+                const latest = rows && rows[0] && rows[0].videos;
+                if (!latest) return false; // data tidak terbaca -> jangan menimpa apa pun
+
+                const all = [...(latest.rootVideos || []), ...(latest.folders || []).flatMap(f => f.videos || [])];
+                const v = all.find(x => String(x.id) === String(videoId));
+                if (!v) return false;
+                v[field] = Math.max(0, (v[field] || 0) + delta);
+
+                const r = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
+                    method: 'PATCH',
+                    headers: { ...h, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({ videos: latest, updated_at: new Date().toISOString() })
+                });
+                return r.ok;
+            } catch (err) {
+                console.error('Error updating counter:', err);
+                return false;
+            }
+        }
+
         async function saveToCloud() {
+            // Jangan simpan kalau data belum berhasil dimuat dari cloud
+            if (!cloudLoaded) {
+                console.error('saveToCloud dibatalkan: data cloud belum berhasil dimuat');
+                if (isAdminLoggedIn) showNotification('❌ Data cloud belum termuat, perubahan TIDAK disimpan. Refresh halaman dulu.', 'error');
+                return false;
+            }
             try {
                 const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -2306,7 +2344,7 @@
                     // Kalau field password ikut dikirim, password terbaru yang sudah
                     // diganti admin bisa ketimpa balik ke versi lama tanpa disadari.
                     // Ganti password HANYA lewat changePassword() -> savePasswordToCloud().
-                    await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
+                    const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}`, {
                         method: 'PATCH',
                         headers: {
                             'apikey': SUPABASE_KEY,
@@ -2316,6 +2354,7 @@
                         },
                         body: JSON.stringify({ videos: data, updated_at: new Date().toISOString() })
                     });
+                    if (!patchRes.ok) throw new Error('Supabase menolak penyimpanan (status ' + patchRes.status + ')');
                 } else {
                     await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}`, {
                         method: 'POST',
@@ -2333,6 +2372,7 @@
                 return true;
             } catch (error) {
                 console.error('Error saving to cloud:', error);
+                if (isAdminLoggedIn) showNotification('❌ Gagal menyimpan ke cloud: ' + error.message, 'error');
                 localStorage.setItem('vidoyData', JSON.stringify(data));
                 localStorage.setItem('adminPassword', adminPassword);
                 return false;
