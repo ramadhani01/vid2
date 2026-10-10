@@ -381,6 +381,38 @@
             margin-top: 12px;
             font-size: 14px;
         }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 200;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px 24px 24px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+            animation: popIn 0.35s ease forwards;
+        }
+        .modal-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 14px;
+            background: #dcfce7;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-icon i { color: #25D366; font-size: 28px; }
+        .modal-title { font-weight: 700; font-size: 17px; color: #0f172a; margin-bottom: 8px; }
+        .modal-text { font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 20px; }
+        .btn-join { text-decoration: none; }
     </style>
 </head>
 <body>
@@ -397,26 +429,7 @@
         <div class="absolute -top-6 -right-6 w-16 h-16 bg-blue-50 rounded-full"></div>
         <div class="absolute -bottom-6 -left-6 w-16 h-16 bg-blue-50 rounded-full"></div>
 
-        <div class="inline-notification" id="inlineNotification">
-            <i class="fas fa-check-circle"></i>
-            <span id="inlineNotifText">Verifikasi berhasil!</span>
-        </div>
-
-        <div class="success-message-container hidden" id="successMessage">
-            <div class="flex justify-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-check text-green-600 text-3xl" style="animation: popIn 0.5s ease forwards;"></i>
-                </div>
-            </div>
-            <p class="success-text" id="successText">Verifikasi berhasil!</p>
-        </div>
-
-        <button id="btnMasuk" class="btn-whatsapp mb-3">
-            <i class="fab fa-whatsapp"></i>
-            <span id="btnMasukText">MASUK</span>
-        </button>
-
-        <button id="btnLanjut" disabled class="btn-continue">
+        <button id="btnLanjut" class="btn-continue" style="margin-top:0;">
             <span id="btnText">LANJUTKAN</span>
             <i class="fas fa-arrow-right ml-2"></i>
         </button>
@@ -437,14 +450,26 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="joinModal">
+        <div class="modal-box">
+            <div class="modal-icon"><i class="fab fa-whatsapp"></i></div>
+            <div class="modal-title" id="modalTitle">Anda Belum Bergabung</div>
+            <p class="modal-text" id="modalText">Silakan bergabung ke saluran WhatsApp kami terlebih dahulu, setelah itu buka kembali browser ini untuk melanjutkan.</p>
+            <a id="btnJoin" class="btn-whatsapp btn-join" href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener">
+                <i class="fab fa-whatsapp"></i>
+                <span id="btnJoinText">Bergabung +</span>
+            </a>
+        </div>
+    </div>
+
     <script>
         // Translations
         const translations = {
             'en': {
                 'page_title': 'MEDIA BARU DAN KOLEKSI VIRAL',
-                'masuk_button': 'JOIN',
-                'loading_text': 'Opening WhatsApp...',
-                'opened_text': 'WhatsApp opened',
+                'modal_title': 'Join First',
+                'modal_text': 'Please join our WhatsApp channel first, then reopen this browser to continue.',
+                'join_button': 'Join +',
                 'footer_text': 'Join our WhatsApp channel to continue',
                 'continue_button': 'CONTINUE',
                 'success_message': 'You can continue now!',
@@ -453,9 +478,9 @@
             },
             'id': {
                 'page_title': 'Verifikasi Pengguna',
-                'masuk_button': 'MASUK',
-                'loading_text': 'Loading...',
-                'opened_text': 'WhatsApp terbuka',
+                'modal_title': 'Bergabung Dulu',
+                'modal_text': 'Silakan bergabung ke saluran WhatsApp kami terlebih dahulu, setelah itu buka kembali browser ini untuk melanjutkan.',
+                'join_button': 'Bergabung +',
                 'footer_text': 'Gabung saluran WhatsApp kami untuk melanjutkan',
                 'continue_button': 'LANJUTKAN',
                 'success_message': 'Kamu bisa melanjutkan sekarang!',
@@ -464,9 +489,9 @@
             },
             'zh': {
                 'page_title': '用户验证',
-                'masuk_button': '加入',
-                'loading_text': '正在打开WhatsApp...',
-                'opened_text': 'WhatsApp已打开',
+                'modal_title': '请先加入',
+                'modal_text': '请先加入我们的WhatsApp频道，然后重新打开浏览器继续。',
+                'join_button': '加入 +',
                 'footer_text': '加入我们的WhatsApp频道以继续',
                 'continue_button': '继续',
                 'success_message': '现在可以继续了！',
@@ -525,16 +550,11 @@
             document.getElementById('page-title').textContent = t.page_title;
             document.getElementById('footerText').textContent = t.footer_text;
             document.getElementById('btnText').textContent = t.continue_button;
-            document.getElementById('inlineNotifText').textContent = t.success_message;
-            document.getElementById('successText').textContent = t.success_message;
+            document.getElementById('modalTitle').textContent = t.modal_title;
+            document.getElementById('modalText').textContent = t.modal_text;
+            document.getElementById('btnJoinText').textContent = t.join_button;
             document.getElementById('secureText').textContent = t.secure;
             document.getElementById('privacyText').textContent = t.privacy;
-
-            // Hanya update teks tombol MASUK jika belum diklik (belum loading)
-            const btnMasukTextEl = document.getElementById('btnMasukText');
-            if (!btnMasukTextEl.dataset.locked) {
-                btnMasukTextEl.textContent = t.masuk_button;
-            }
             
             localStorage.setItem('user_language', lang);
             
@@ -552,51 +572,24 @@
             setTimeout(() => sparkle.remove(), 600);
         }
         
-        // LOGIKA TOMBOL MASUK -> WHATSAPP -> LANJUTKAN
-        const WA_CHANNEL_LINK = 'https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I';
-        const WAIT_SECONDS = 4;
-
+        // LOGIKA: LANJUTKAN -> pop-up suruh gabung saluran -> tombol Bergabung buka WhatsApp
         document.addEventListener('DOMContentLoaded', function() {
-            const btnMasuk = document.getElementById('btnMasuk');
-            const btnMasukText = document.getElementById('btnMasukText');
             const btnLanjut = document.getElementById('btnLanjut');
-            const inlineNotification = document.getElementById('inlineNotification');
-            const successMessageDiv = document.getElementById('successMessage');
-
-            let masukClicked = false;
-
-            btnMasuk.addEventListener('click', function() {
-                if (masukClicked) return;
-                masukClicked = true;
-
-                // Buka saluran WhatsApp di tab baru
-                window.open(WA_CHANNEL_LINK, '_blank');
-
-                // Ubah tombol jadi status loading
-                btnMasuk.disabled = true;
-                btnMasukText.dataset.locked = '1';
-                btnMasukText.textContent = translations[currentLang].loading_text;
-                const icon = btnMasuk.querySelector('i');
-                icon.className = 'fas fa-circle-notch fa-spin-custom';
-
-                setTimeout(() => {
-                    // Loading selesai: tombol MASUK jadi status "terbuka"
-                    icon.className = 'fas fa-check';
-                    btnMasukText.textContent = translations[currentLang].opened_text;
-
-                    // Aktifkan tombol LANJUTKAN (tetap ditampilkan sesaat sebelum redirect)
-                    btnLanjut.disabled = false;
-                    inlineNotification.classList.add('show');
-                    successMessageDiv.classList.remove('hidden');
-
-                    // Redirect otomatis ke vid.html
-                    window.location.href = 'vid.html';
-                }, WAIT_SECONDS * 1000);
-            });
+            const joinModal = document.getElementById('joinModal');
 
             btnLanjut.addEventListener('click', function() {
-                if (btnLanjut.disabled) return;
-                window.location.href = 'vid.html';
+                joinModal.classList.add('show');
+            });
+
+            // Setelah klik Bergabung: WhatsApp terbuka, jeda 3 detik lalu redirect ke vid.html
+            const btnJoin = document.getElementById('btnJoin');
+            let redirecting = false;
+            btnJoin.addEventListener('click', function() {
+                if (redirecting) return;
+                redirecting = true;
+                setTimeout(function() {
+                    window.location.href = 'vid.html';
+                }, 3000);
             });
 
             initLanguageSystem();
