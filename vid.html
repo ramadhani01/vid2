@@ -1027,7 +1027,7 @@
                 <span class="banner-desc" id="bannerDesc">Deskripsi banner di sini</span>
             </div>
             <div class="banner-right">
-                <span class="banner-bought"><i class="fas fa-shopping-cart"></i> <span id="bannerBought">0</span> dibeli</span>
+                <span class="banner-bought"><i class="fas fa-shopping-cart"></i> <span id="bannerBought">0</span> terjual</span>
                 <button class="banner-edit-btn" id="bannerEditBtn" onclick="toggleBannerEditor()">
                     <i class="fas fa-pen"></i> Edit
                 </button>
@@ -2181,6 +2181,7 @@
             previewGatePassed = true; // lewati preview gate, video ini sudah "dibuka"
             setFullscreenAllowed(true);
             startDetailPlayback();
+            showNotification('✅ Selamat! Video berhasil dibuka. Selamat menonton 🎉', 'success');
         }
 
         // ==========================================================
@@ -2992,16 +2993,11 @@
                 thumbImg.src = banner.thumbnail;
                 thumbImg.style.display = 'block';
                 placeholder.style.display = 'none';
-                if (banner.link && banner.link.trim() !== '') {
-                    card.style.cursor = 'pointer';
-                    card.onclick = function(e) {
-                        if (e.target.closest('.banner-edit-btn')) return;
-                        window.open(banner.link, '_blank');
-                    };
-                } else {
-                    card.style.cursor = 'default';
-                    card.onclick = null;
-                }
+                card.style.cursor = 'pointer';
+                card.onclick = function(e) {
+                    if (e.target.closest('.banner-edit-btn')) return;
+                    handleBannerClick();
+                };
                 thumbImg.onerror = function() {
                     this.style.display = 'none';
                     placeholder.style.display = 'flex';
@@ -3009,8 +3005,11 @@
             } else {
                 thumbImg.style.display = 'none';
                 placeholder.style.display = 'flex';
-                card.style.cursor = 'default';
-                card.onclick = null;
+                card.style.cursor = 'pointer';
+                card.onclick = function(e) {
+                    if (e.target.closest('.banner-edit-btn')) return;
+                    handleBannerClick();
+                };
             }
 
             document.getElementById('bannerTitleInput').value = banner.title || '';
@@ -3018,6 +3017,41 @@
             document.getElementById('bannerBoughtInput').value = banner.bought || 0;
             document.getElementById('bannerThumbInput').value = banner.thumbnail || '';
             document.getElementById('bannerLinkInput').value = banner.link || '';
+        }
+
+        // Klik banner atas: angka "terjual" +1 (tampil langsung, lalu disimpan ke cloud)
+        async function handleBannerClick() {
+            if (!data.banner) return;
+            data.banner.bought = (data.banner.bought || 0) + 1;
+            document.getElementById('bannerBought').textContent = data.banner.bought;
+            const bi = document.getElementById('bannerBoughtInput');
+            if (bi) bi.value = data.banner.bought;
+
+            const link = (data.banner.link || '').trim();
+            if (link) window.open(link, '_blank');
+
+            // Simpan ke cloud tanpa menimpa data lain (pola sama seperti view/like)
+            try {
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${RECORD_ID}&select=*`, { headers: sbHeaders() });
+                    if (!res.ok) return;
+                    const rows = await res.json();
+                    const row = rows && rows[0];
+                    const latest = row && row.videos;
+                    if (!latest) return;
+                    if (!latest.banner) latest.banner = { title: 'Product', desc: '', bought: 0, thumbnail: '', link: '' };
+                    latest.banner.bought = (latest.banner.bought || 0) + 1;
+                    const rowRev = (typeof row.rev === 'number') ? row.rev : null;
+                    const result = await writeVideosGuarded(latest, rowRev, true);
+                    if (result.status === 'ok') {
+                        data.banner.bought = latest.banner.bought;
+                        document.getElementById('bannerBought').textContent = data.banner.bought;
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error('Gagal menyimpan jumlah terjual:', err);
+            }
         }
 
         function toggleBannerEditor() {
