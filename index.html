@@ -104,6 +104,27 @@
 
         .shake-animation { animation: shake 0.3s ease-in-out; }
 
+        .btn-tutorial {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid #25d366;
+            background: #f0fdf4;
+            color: #15803d;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .btn-tutorial:hover { background: #dcfce7; }
+        .btn-tutorial:active { transform: scale(0.98); }
+
         .btn-continue {
             background: #3b82f6;
             color: white;
@@ -229,7 +250,7 @@
         <div class="mb-2 text-left">
             <label for="linkInput" id="labelText" class="block text-sm font-semibold text-slate-700 mb-2">Tempel tautan video TikTok untuk melanjutkan</label>
             <div class="link-row" id="linkRow">
-                <input type="text" id="linkInput" class="link-input" placeholder="Tempel..." autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
+                <input type="text" id="linkInput" class="link-input" placeholder="https://vt.tiktok.com/..." autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
                 <button type="button" id="btnPaste" class="btn-paste">
                     <i class="fas fa-paste"></i><span id="pasteText">Tempel</span>
                 </button>
@@ -246,6 +267,11 @@
             <i class="fas fa-arrow-right ml-2"></i>
         </button>
         
+        <a id="btnTutorial" class="btn-tutorial" href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-whatsapp"></i>
+            <span id="tutorialText">Tutorial</span>
+        </a>
+
         <p id="footerText" class="text-xs text-gray-500 mt-6">Langkah ini diperlukan untuk mencegah akses otomatis</p>
         
         <div class="mt-6 pt-6 border-t border-gray-200">
@@ -275,6 +301,7 @@
                 'label': 'Paste the TikTok video link to continue',
                 'paste': 'Paste',
                 'continue_button': 'Continue',
+                'tutorial': 'Tutorial',
                 'footer_text': 'This step is required to prevent automated access',
                 'not_found': 'Video not found',
                 'paste_failed': 'Paste is blocked here. Long-press the field and choose Paste.',
@@ -286,6 +313,7 @@
                 'label': 'Tempel tautan video TikTok untuk melanjutkan',
                 'paste': 'Tempel',
                 'continue_button': 'Lanjutkan',
+                'tutorial': 'Tutorial',
                 'footer_text': 'Langkah ini diperlukan untuk mencegah akses otomatis',
                 'not_found': 'Video tidak ditemukan',
                 'paste_failed': 'Tempel diblokir di sini. Tekan lama kolom lalu pilih Tempel.',
@@ -297,6 +325,7 @@
                 'label': '粘贴 TikTok 视频链接以继续',
                 'paste': '粘贴',
                 'continue_button': '继续',
+                'tutorial': '教程',
                 'footer_text': '此步骤用于防止自动访问',
                 'not_found': '未找到视频',
                 'paste_failed': '此处无法粘贴，请长按输入框并选择粘贴。',
@@ -351,6 +380,7 @@
             $('labelText').textContent = t.label;
             $('pasteText').textContent = t.paste;
             $('btnText').textContent = t.continue_button;
+            $('tutorialText').textContent = t.tutorial;
             $('footerText').textContent = t.footer_text;
             $('secureText').textContent = t.secure;
             $('privacyText').textContent = t.privacy;
