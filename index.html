@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title id="page-title">Verifikasi Pengguna</title>
+    <meta property="og:title" content="User Verification">
+    <meta name="author" content="FGNcode">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            background: linear-gradient(to bottom right, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        input, textarea { user-select: text; -webkit-user-select: text; }
+
+        .link-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 4px; }
+
+        .link-input {
+            flex: 1;
+            min-width: 0;
+            height: 48px;
+            padding: 0 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #fff;
+            color: #0f172a;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .link-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .link-input.invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+
+        .btn-paste {
+            height: 48px;
+            padding: 0 16px;
+            border-radius: 10px;
+            border: 1px solid #3b82f6;
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .btn-paste:hover { background: #dbeafe; }
+        .btn-paste:active { transform: scale(0.97); }
+
+        .error-box {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            color: #991b1b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .error-box.show { display: flex; animation: popIn 0.3s ease forwards; }
+
+        .hint-text { color: #94a3b8; font-size: 12px; margin-top: 8px; min-height: 16px; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .shake-animation { animation: shake 0.3s ease-in-out; }
+
+        .btn-continue {
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .btn-continue:hover:not(:disabled) {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-continue:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .lang-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        
+        .lang-btn {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .lang-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        
+        .lang-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: none;
+            min-width: 160px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            z-index: 101;
+        }
+        
+        .lang-dropdown.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+        
+        .lang-option {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .lang-option:hover {
+            background: #f1f5f9;
+            color: #3b82f6;
+        }
+        
+        .lang-option:last-child {
+            border-bottom: none;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="lang-selector">
+        <button class="lang-btn" id="langBtn">
+            <i class="fas fa-globe text-blue-500"></i>
+            <span id="currentLang">ID</span>
+            <i class="fas fa-chevron-down text-xs text-gray-500"></i>
+        </button>
+        <div class="lang-dropdown" id="langDropdown"></div>
+    </div>
+    
+    <div class="bg-white card-glow rounded-2xl p-8 w-full max-w-md text-center relative overflow-hidden">
+        <div class="absolute -top-6 -right-6 w-16 h-16 bg-blue-50 rounded-full"></div>
+        <div class="absolute -bottom-6 -left-6 w-16 h-16 bg-blue-50 rounded-full"></div>
+
+        <div class="mb-2 text-left">
+            <label for="linkInput" id="labelText" class="block text-sm font-semibold text-slate-700 mb-2">Tempel tautan video TikTok untuk melanjutkan</label>
+            <div class="link-row" id="linkRow">
+                <input type="text" id="linkInput" class="link-input" placeholder="Tempel..." autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url">
+                <button type="button" id="btnPaste" class="btn-paste">
+                    <i class="fas fa-paste"></i><span id="pasteText">Tempel</span>
+                </button>
+            </div>
+            <div class="error-box" id="errorBox" role="alert">
+                <i class="fas fa-circle-exclamation"></i>
+                <span id="errorText">Video tidak ditemukan</span>
+            </div>
+            <p class="hint-text" id="hintText"></p>
+        </div>
+
+        <button id="btnLanjut" disabled class="btn-continue">
+            <span id="btnText">Lanjutkan</span>
+            <i class="fas fa-arrow-right ml-2"></i>
+        </button>
+        
+        <p id="footerText" class="text-xs text-gray-500 mt-6">Langkah ini diperlukan untuk mencegah akses otomatis</p>
+        
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="flex items-center justify-center gap-6 text-xs text-gray-500">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-lock text-blue-500"></i>
+                    <span id="secureText">Koneksi Aman</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-shield text-blue-500"></i>
+                    <span id="privacyText">Privasi Terlindungi</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Satu-satunya link yang diterima: host persis vt.tiktok.com (https) + kode di path.
+        // Tujuan redirect selalu halaman vid.html di situs ini.
+        const TARGET_PAGE = 'vid.html';
+        const ALLOWED_HOST = 'vt.tiktok.com';
+
+        // Translations
+        const translations = {
+            'en': {
+                'page_title': 'MEDIA BARU DAN KOLEKSI VIRAL',
+                'label': 'Paste the TikTok video link to continue',
+                'paste': 'Paste',
+                'continue_button': 'Continue',
+                'footer_text': 'This step is required to prevent automated access',
+                'not_found': 'Video not found',
+                'paste_failed': 'Paste is blocked here. Long-press the field and choose Paste.',
+                'secure': 'Secure Connection',
+                'privacy': 'Privacy Protected'
+            },
+            'id': {
+                'page_title': 'Verifikasi Pengguna',
+                'label': 'Tempel tautan video TikTok untuk melanjutkan',
+                'paste': 'Tempel',
+                'continue_button': 'Lanjutkan',
+                'footer_text': 'Langkah ini diperlukan untuk mencegah akses otomatis',
+                'not_found': 'Video tidak ditemukan',
+                'paste_failed': 'Tempel diblokir di sini. Tekan lama kolom lalu pilih Tempel.',
+                'secure': 'Koneksi Aman',
+                'privacy': 'Privasi Terlindungi'
+            },
+            'zh': {
+                'page_title': '用户验证',
+                'label': '粘贴 TikTok 视频链接以继续',
+                'paste': '粘贴',
+                'continue_button': '继续',
+                'footer_text': '此步骤用于防止自动访问',
+                'not_found': '未找到视频',
+                'paste_failed': '此处无法粘贴，请长按输入框并选择粘贴。',
+                'secure': '安全连接',
+                'privacy': '隐私保护'
+            }
+        };
+
+        const availableLanguages = [
+            {code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩'},
+            {code: 'en', name: 'English', flag: '🇺🇸'},
+            {code: 'zh', name: '中文', flag: '🇨🇳'}
+        ];
+
+        let currentLang = 'id';
+
+        const $ = (id) => document.getElementById(id);
+        const T = (key) => (translations[currentLang] || translations.id)[key];
+
+        function initLanguageSystem() {
+            const langDropdown = $('langDropdown');
+            langDropdown.innerHTML = '';
+
+            availableLanguages.forEach(lang => {
+                const option = document.createElement('div');
+                option.className = 'lang-option';
+                option.innerHTML = `<span>${lang.flag}</span><span>${lang.name}</span>`;
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setLanguage(lang.code);
+                    langDropdown.classList.remove('show');
+                });
+                langDropdown.appendChild(option);
+            });
+
+            setLanguage(localStorage.getItem('user_language') || 'id');
+
+            $('langBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                langDropdown.classList.toggle('show');
+            });
+
+            document.addEventListener('click', () => langDropdown.classList.remove('show'));
+        }
+
+        function setLanguage(lang) {
+            if (!translations[lang]) lang = 'id';
+            currentLang = lang;
+            const t = translations[lang];
+
+            $('page-title').textContent = t.page_title;
+            $('labelText').textContent = t.label;
+            $('pasteText').textContent = t.paste;
+            $('btnText').textContent = t.continue_button;
+            $('footerText').textContent = t.footer_text;
+            $('secureText').textContent = t.secure;
+            $('privacyText').textContent = t.privacy;
+            if ($('errorBox').dataset.key) $('errorText').textContent = t[$('errorBox').dataset.key];
+
+            localStorage.setItem('user_language', lang);
+            const langInfo = availableLanguages.find(l => l.code === lang);
+            $('currentLang').textContent = langInfo ? langInfo.code.toUpperCase() : 'ID';
+        }
+
+        function showError(key) {
+            const box = $('errorBox');
+            box.dataset.key = key;
+            $('errorText').textContent = T(key);
+            box.classList.add('show');
+            $('linkInput').classList.add('invalid');
+            $('linkRow').classList.remove('shake-animation');
+            void $('linkRow').offsetWidth;
+            $('linkRow').classList.add('shake-animation');
+        }
+
+        function clearError() {
+            const box = $('errorBox');
+            box.classList.remove('show');
+            delete box.dataset.key;
+            $('linkInput').classList.remove('invalid');
+            $('hintText').textContent = '';
+        }
+
+        // Lolos hanya kalau diawali https://vt.tiktok.com, host-nya persis vt.tiktok.com
+        // (menolak trik seperti https://vt.tiktok.com.situs-lain.com), dan ada kode di path.
+        function isAllowedLink(raw) {
+            const text = String(raw || '').trim();
+            if (!/^https:\/\/vt\.tiktok\.com(\/|$)/i.test(text)) return false;
+            let url;
+            try { url = new URL(text); } catch (e) { return false; }
+            if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== ALLOWED_HOST) return false;
+            if (url.username || url.password) return false;
+            return url.pathname.replace(/\//g, '').length > 0;
+        }
+
+        function handleContinue() {
+            const raw = $('linkInput').value;
+            if (!isAllowedLink(raw)) { showError('not_found'); return; }
+            clearError();
+            window.location.href = TARGET_PAGE;
+        }
+
+        async function handlePaste() {
+            clearError();
+            const input = $('linkInput');
+            try {
+                const text = await navigator.clipboard.readText();
+                input.value = (text || '').trim();
+                input.dispatchEvent(new Event('input'));
+            } catch (e) {
+                input.focus();
+                $('hintText').textContent = T('paste_failed');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = $('linkInput');
+            input.addEventListener('input', () => {
+                clearError();
+                $('btnLanjut').disabled = !input.value.trim();
+            });
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('btnLanjut').disabled) handleContinue(); });
+            $('btnPaste').addEventListener('click', handlePaste);
+            $('btnLanjut').addEventListener('click', handleContinue);
+            initLanguageSystem();
+        });
+    </script>
+</body>
+</html>
