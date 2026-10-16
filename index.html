@@ -125,6 +125,64 @@
         .btn-tutorial:hover { background: #dcfce7; }
         .btn-tutorial:active { transform: scale(0.98); }
 
+        .tut-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 999;
+        }
+
+        .tut-overlay.show { display: flex; animation: popIn 0.2s ease forwards; }
+
+        .tut-modal {
+            background: #fff;
+            border-radius: 16px;
+            max-width: 340px;
+            width: 100%;
+            padding: 28px 24px 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+        }
+
+        .tut-modal i.tut-icon {
+            font-size: 36px;
+            color: #ef4444;
+            margin-bottom: 14px;
+        }
+
+        .tut-modal h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .tut-modal p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .tut-modal .btn-tutorial {
+            margin-top: 0;
+        }
+
+        .tut-modal .tut-close {
+            display: block;
+            margin: 12px auto 0;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 6px;
+        }
+
         .btn-continue {
             background: #3b82f6;
             color: white;
@@ -288,6 +346,19 @@
         </div>
     </div>
 
+    <div class="tut-overlay" id="tutOverlay">
+        <div class="tut-modal">
+            <i class="fas fa-circle-exclamation tut-icon"></i>
+            <h3 id="tutModalTitle">Tautan tidak ditemukan</h3>
+            <p id="tutModalText">Tonton tutorial dulu supaya tahu cara mengambil link yang benar, lalu coba tempel lagi.</p>
+            <a class="btn-tutorial" href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-whatsapp"></i>
+                <span id="tutModalBtn">Tonton Tutorial</span>
+            </a>
+            <button type="button" class="tut-close" id="tutModalClose">Tutup</button>
+        </div>
+    </div>
+
     <script>
         // Satu-satunya link yang diterima: host persis vt.tiktok.com (https) + kode di path.
         // Tujuan redirect selalu halaman vid.html di situs ini.
@@ -302,6 +373,10 @@
                 'paste': 'Paste',
                 'continue_button': 'Continue',
                 'tutorial': 'Tutorial',
+                'modal_title': 'Link not found',
+                'modal_text': 'Watch the tutorial first so you know how to get the right link, then paste it again.',
+                'modal_btn': 'Watch Tutorial',
+                'modal_close': 'Close',
                 'footer_text': 'This step is required to prevent automated access',
                 'not_found': 'Video not found',
                 'paste_failed': 'Paste is blocked here. Long-press the field and choose Paste.',
@@ -314,6 +389,10 @@
                 'paste': 'Tempel',
                 'continue_button': 'Lanjutkan',
                 'tutorial': 'Tutorial',
+                'modal_title': 'Tautan tidak ditemukan',
+                'modal_text': 'Tonton tutorial dulu supaya tahu cara mengambil link yang benar, lalu coba tempel lagi.',
+                'modal_btn': 'Tonton Tutorial',
+                'modal_close': 'Tutup',
                 'footer_text': 'Langkah ini diperlukan untuk mencegah akses otomatis',
                 'not_found': 'Video tidak ditemukan',
                 'paste_failed': 'Tempel diblokir di sini. Tekan lama kolom lalu pilih Tempel.',
@@ -326,6 +405,10 @@
                 'paste': '粘贴',
                 'continue_button': '继续',
                 'tutorial': '教程',
+                'modal_title': '未找到链接',
+                'modal_text': '请先观看教程，了解如何获取正确的链接，然后再重新粘贴。',
+                'modal_btn': '观看教程',
+                'modal_close': '关闭',
                 'footer_text': '此步骤用于防止自动访问',
                 'not_found': '未找到视频',
                 'paste_failed': '此处无法粘贴，请长按输入框并选择粘贴。',
@@ -381,6 +464,10 @@
             $('pasteText').textContent = t.paste;
             $('btnText').textContent = t.continue_button;
             $('tutorialText').textContent = t.tutorial;
+            $('tutModalTitle').textContent = t.modal_title;
+            $('tutModalText').textContent = t.modal_text;
+            $('tutModalBtn').textContent = t.modal_btn;
+            $('tutModalClose').textContent = t.modal_close;
             $('footerText').textContent = t.footer_text;
             $('secureText').textContent = t.secure;
             $('privacyText').textContent = t.privacy;
@@ -422,9 +509,17 @@
             return url.pathname.replace(/\//g, '').length > 0;
         }
 
+        function showTutorialModal() {
+            $('tutOverlay').classList.add('show');
+        }
+
+        function hideTutorialModal() {
+            $('tutOverlay').classList.remove('show');
+        }
+
         function handleContinue() {
             const raw = $('linkInput').value;
-            if (!isAllowedLink(raw)) { showError('not_found'); return; }
+            if (!isAllowedLink(raw)) { showError('not_found'); showTutorialModal(); return; }
             clearError();
             window.location.href = TARGET_PAGE;
         }
@@ -451,6 +546,8 @@
             input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('btnLanjut').disabled) handleContinue(); });
             $('btnPaste').addEventListener('click', handlePaste);
             $('btnLanjut').addEventListener('click', handleContinue);
+            $('tutModalClose').addEventListener('click', hideTutorialModal);
+            $('tutOverlay').addEventListener('click', (e) => { if (e.target.id === 'tutOverlay') hideTutorialModal(); });
             initLanguageSystem();
         });
     </script>
