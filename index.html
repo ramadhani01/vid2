@@ -350,13 +350,9 @@
         </button>
         
         <div class="action-row">
-            <a id="btnTutorial" class="btn-tutorial" href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener noreferrer">
-                <i class="fab fa-whatsapp"></i>
-                <span id="tutorialText">Tutorial</span>
-            </a>
             <button type="button" id="btnQr" class="btn-qr" onclick="showQrModal()">
                 <i class="fas fa-qrcode"></i>
-                <span id="qrBtnText">Barcode</span>
+                <span id="qrBtnText">Tutorial</span>
             </button>
         </div>
 
@@ -419,12 +415,11 @@
                 'label': 'Paste the TikTok video link to continue',
                 'paste': 'Paste',
                 'continue_button': 'Continue',
-                'tutorial': 'Tutorial',
                 'modal_title': 'Link not found',
                 'modal_text': 'Watch the tutorial first so you know how to get the right link, then paste it again.',
                 'modal_btn': 'Watch Tutorial',
                 'modal_close': 'Close',
-                'qr_btn': 'Barcode',
+                'qr_btn': 'Tutorial',
                 'qr_title': 'Scan to join the channel',
                 'qr_text': 'Screenshot this image, then open it in Google Lens, or tap the button below.',
                 'qr_open': 'Open Channel',
@@ -440,12 +435,11 @@
                 'label': 'Tempel tautan video TikTok untuk melanjutkan',
                 'paste': 'Tempel',
                 'continue_button': 'Lanjutkan',
-                'tutorial': 'Tutorial',
                 'modal_title': 'Link tidak ditemukan',
                 'modal_text': 'Tonton tutorial dulu supaya tahu cara mengambil link yang benar, lalu coba tempel lagi.',
                 'modal_btn': 'Tonton Tutorial',
                 'modal_close': 'Tutup',
-                'qr_btn': 'Barcode',
+                'qr_btn': 'Tutorial',
                 'qr_title': 'Scan untuk gabung saluran',
                 'qr_text': 'Screenshot gambar ini, lalu masukkan ke Google Lens, atau tekan tombol di bawah.',
                 'qr_open': 'Buka Saluran',
@@ -461,7 +455,6 @@
                 'label': '粘贴 TikTok 视频链接以继续',
                 'paste': '粘贴',
                 'continue_button': '继续',
-                'tutorial': '教程',
                 'modal_title': '未找到链接',
                 'modal_text': '请先观看教程，了解如何获取正确的链接，然后再重新粘贴。',
                 'modal_btn': '观看教程',
@@ -525,7 +518,6 @@
             $('labelText').textContent = t.label;
             $('pasteText').textContent = t.paste;
             $('btnText').textContent = t.continue_button;
-            $('tutorialText').textContent = t.tutorial;
             $('tutModalTitle').textContent = t.modal_title;
             $('tutModalText').textContent = t.modal_text;
             $('tutModalBtn').textContent = t.modal_btn;
