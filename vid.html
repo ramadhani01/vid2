@@ -1231,7 +1231,7 @@
                 </div>
                 <div class="form-group">
                     <label>Atau URL Video Langsung (file .mp4 langsung — isi ini JIKA tidak upload file di atas)</label>
-                    <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4">
+                    <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
                 </div>
                 <div class="form-group">
                     <label>Ukuran File (otomatis terisi kalau upload file, atau isi manual)</label>
@@ -1986,6 +1986,7 @@
             posterImg.onerror = function() { this.src = 'https://via.placeholder.com/400x600/1a1a1a/f59b00?text=No+Image'; };
             poster.style.display = 'block';
             player.style.display = 'none';
+            removeExternalPlayer();
             player.pause();
             player.removeAttribute('src');
             loading.style.display = 'none';
@@ -1998,6 +1999,43 @@
             videoViewActive = true;
             document.getElementById('backBtn').classList.add('visible');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ==========================================================
+        // LINK EKSTERNAL (mis. halaman share/embed host video yang punya iklan sendiri)
+        // Kalau URL bukan file video langsung, tampilkan lewat iframe.
+        // Catatan: preview gate (batas durasi) TIDAK berlaku di mode ini.
+        // ==========================================================
+        function isDirectVideoUrl(url) {
+            if (!url) return false;
+            if (url.indexOf('/storage/v1/object/public/') !== -1) return true; // upload Supabase
+            return /\.(mp4|webm|m4v|mov|ogv|m3u8)(\?|#|$)/i.test(url);
+        }
+
+        function removeExternalPlayer() {
+            const old = document.getElementById('externalPlayerWrap');
+            if (old) old.remove();
+        }
+
+        function showExternalPlayer(url) {
+            removeExternalPlayer();
+            const box = document.querySelector('.video-detail-player');
+            const wrap = document.createElement('div');
+            wrap.id = 'externalPlayerWrap';
+            wrap.style.cssText = 'position:absolute;inset:0;background:#000;';
+            const frame = document.createElement('iframe');
+            frame.src = url;
+            frame.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
+            frame.allowFullscreen = true;
+            frame.referrerPolicy = 'no-referrer-when-downgrade';
+            frame.style.cssText = 'width:100%;height:100%;border:0;display:block;';
+            const link = document.createElement('a');
+            link.href = url; link.target = '_blank'; link.rel = 'noopener';
+            link.textContent = 'Tidak muncul? Buka di tab baru';
+            link.style.cssText = 'position:absolute;left:8px;bottom:8px;z-index:5;font-size:11px;color:#f59b00;background:rgba(0,0,0,.65);padding:4px 8px;border-radius:6px;text-decoration:none;';
+            wrap.appendChild(frame);
+            wrap.appendChild(link);
+            box.appendChild(wrap);
         }
 
         function startDetailPlayback() {
@@ -2020,6 +2058,12 @@
             errorBox.classList.remove('visible');
             loading.style.display = 'block';
             errorLink.href = item.url;
+
+            if (!isDirectVideoUrl(item.url)) {
+                loading.style.display = 'none';
+                showExternalPlayer(item.url);
+                return;
+            }
 
             player.src = item.url;
             player.load();
@@ -2315,6 +2359,7 @@
         }
 
         function closeVideoDetail() {
+            removeExternalPlayer();
             const player = document.getElementById('detailVideo');
             player.pause();
             player.removeAttribute('src');
