@@ -1189,6 +1189,14 @@
     <!-- ADMIN PANEL -->
     <div class="admin-panel" id="adminPanel">
         <h2><i class="fas fa-cog"></i> Panel Admin</h2>
+        <div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:13px;color:#aaa;">
+            <label for="imgHostSelect" style="white-space:nowrap;">Upload gambar ke:</label>
+            <select id="imgHostSelect" onchange="setImageHost(this.value)" style="flex:1;padding:8px 10px;border-radius:8px;background:#14151A;color:#fff;border:1px solid #2a2a2a;">
+                <option value="imgbb">ImgBB</option>
+                <option value="github">GitHub + jsDelivr</option>
+                <option value="supabase">Supabase Storage</option>
+            </select>
+        </div>
         <div class="admin-tabs">
             <button class="admin-tab active" data-tab="video" onclick="switchTab('video')"><i class="fas fa-video"></i> Tambah Video</button>
             <button class="admin-tab" data-tab="folder" onclick="switchTab('folder')"><i class="fas fa-folder"></i> Tambah Folder</button>
@@ -1253,8 +1261,8 @@
                 </div>
                 <div class="row" id="videoPreviewAdRow" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Durasi Preview (detik)</label>
-                        <input type="number" id="videoPreviewSeconds" min="1" placeholder="5" value="5">
+                        <label>Durasi Preview (menit.detik, mis. 0.30 / 2.10)</label>
+                        <input type="text" inputmode="decimal" id="videoPreviewSeconds" placeholder="0.05" value="0.05">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>URL Ad Link (khusus video ini)</label>
@@ -1438,8 +1446,8 @@
                 </div>
                 <div class="row" id="editPreviewAdRow" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Durasi Preview (detik)</label>
-                        <input type="number" id="editPreviewSecondsInput" min="1">
+                        <label>Durasi Preview (menit.detik, mis. 0.30 / 2.10)</label>
+                        <input type="text" inputmode="decimal" id="editPreviewSecondsInput" placeholder="0.05">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>URL Ad Link</label>
@@ -1519,6 +1527,13 @@
         // dapat API Key, lalu tempel di bawah ini. Selama masih kosong, tombol
         // "Upload" gambar akan menampilkan pesan error.
         const IMGBB_API_KEY = 'ad9e0b8a3c19e278ac72c099ced3d2bb';
+        // --- Thumbnail via GitHub + jsDelivr ---
+        // FILL: username GitHub, nama repo (HARUS public), branch
+        const GH_OWNER  = 'ramadhani01';
+        const GH_REPO   = 'cdnpic';
+        const GH_BRANCH = 'main';
+        const GH_DIR    = 'thumbs';
+        // Token TIDAK ditaruh di kode. Admin diminta memasukkannya sekali, disimpan di localStorage HP admin.
         const UNLOCK_TOKENS_TABLE = 'unlock_tokens';
 
         // ==========================================================
@@ -1614,10 +1629,73 @@
         // UPLOAD GAMBAR OTOMATIS KE IMGBB (dipakai semua tombol "Upload"
         // di sebelah kolom URL Thumbnail — video, folder, banner, edit)
         // ==========================================================
-        function uploadImageToImgbb(file, onProgress) {
+        // Resize ke maks 640px lebar, JPEG 0.82 -> file kecil, cepat dimuat di HP orang lain
+        function resizeImageToJpegBlob(file, maxW) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(1, maxW / img.width);
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * scale);
+                    c.height = Math.round(img.height * scale);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    c.toBlob(b => b ? resolve(b) : reject(new Error('Gagal memproses gambar.')), 'image/jpeg', 0.82);
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('File bukan gambar yang valid.')); };
+                img.src = url;
+            });
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(String(r.result).split(',')[1]);
+                r.onerror = () => reject(new Error('Gagal membaca gambar.'));
+                r.readAsDataURL(blob);
+            });
+        }
+
+        // Nama fungsi dipertahankan supaya semua tombol Upload yang lama tetap jalan.
+        async function uploadImageToGithub(file, onProgress, maxW) {
+            if (GH_OWNER === 'USERNAME_GITHUB' || GH_REPO === 'NAMA_REPO') {
+                throw new Error('GH_OWNER / GH_REPO belum diisi di kode.');
+            }
+            let token = localStorage.getItem('vidoy_gh_token') || '';
+            if (!token) {
+                token = (prompt('Masukkan GitHub token (fine-grained, akses Contents: write ke repo ini saja):') || '').trim();
+                if (!token) throw new Error('Token GitHub dibatalkan.');
+                localStorage.setItem('vidoy_gh_token', token);
+            }
+            if (onProgress) onProgress(10);
+            const blob = await resizeImageToJpegBlob(file, maxW || 640);
+            const b64 = await blobToBase64(blob);
+            if (onProgress) onProgress(40);
+            const name = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+            const path = GH_DIR + '/' + name;
+            const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/vnd.github+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: 'thumb ' + name, content: b64, branch: GH_BRANCH })
+            });
+            if (onProgress) onProgress(100);
+            if (res.status === 401 || res.status === 403) {
+                localStorage.removeItem('vidoy_gh_token');
+                throw new Error('Token GitHub ditolak/kedaluwarsa. Upload ulang untuk memasukkan token baru.');
+            }
+            if (!res.ok) throw new Error('Upload ke GitHub gagal (status ' + res.status + ').');
+            return `https://cdn.jsdelivr.net/gh/${GH_OWNER}/${GH_REPO}@${GH_BRANCH}/${path}`;
+        }
+
+        function uploadImageToImgbbRaw(file, onProgress) {
             return new Promise((resolve, reject) => {
                 if (!IMGBB_API_KEY || IMGBB_API_KEY.trim() === '') {
-                    reject(new Error('API Key ImgBB belum diisi. Buka kode, cari IMGBB_API_KEY, isi dengan key dari api.imgbb.com.'));
+                    reject(new Error('API Key ImgBB belum diisi.'));
                     return;
                 }
                 const formData = new FormData();
@@ -1640,6 +1718,47 @@
                 xhr.onerror = function() { reject(new Error('Upload gagal. Cek koneksi internet.')); };
                 xhr.send(formData);
             });
+        }
+
+        async function uploadImageToSupabase(file, onProgress, maxW) {
+            const blob = await resizeImageToJpegBlob(file, maxW || 640);
+            return new Promise((resolve, reject) => {
+                const safeName = 'thumbs/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${VIDEO_BUCKET}/${safeName}`, true);
+                xhr.setRequestHeader('apikey', SUPABASE_KEY);
+                xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_KEY}`);
+                xhr.setRequestHeader('Content-Type', 'image/jpeg');
+                xhr.upload.onprogress = e => {
+                    if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+                };
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(`${SUPABASE_URL}/storage/v1/object/public/${VIDEO_BUCKET}/${safeName}`);
+                    } else {
+                        reject(new Error('Upload ke Supabase gagal (status ' + xhr.status + ').'));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Upload gagal. Cek koneksi internet.'));
+                xhr.send(blob);
+            });
+        }
+
+        // Pilihan tujuan upload gambar (disimpan per HP admin). Nama fungsi dipertahankan
+        // supaya semua tombol Upload yang lama tetap memanggilnya.
+        document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('imgHostSelect'); if (el) el.value = getImageHost(); });
+        function getImageHost() {
+            const saved = localStorage.getItem('vidoy_img_host');
+            if (saved === 'imgbb' || saved === 'github' || saved === 'supabase') return saved;
+            return 'imgbb';
+        }
+        function setImageHost(v) { localStorage.setItem('vidoy_img_host', v); }
+
+        function uploadImageToImgbb(file, onProgress, maxW) {
+            const host = getImageHost();
+            if (host === 'github') return uploadImageToGithub(file, onProgress, maxW);
+            if (host === 'supabase') return uploadImageToSupabase(file, onProgress, maxW);
+            return uploadImageToImgbbRaw(file, onProgress);
         }
 
         async function handleThumbFileUpload(fileInput, targetInputId, statusElId) {
@@ -3266,6 +3385,25 @@
             }
         }
 
+        // Format durasi preview: "menit.detik" -> 0.30 = 30 detik, 2.10 = 2 menit 10 detik.
+        // Angka tanpa titik dianggap detik (45 = 45 detik). Titik dua juga boleh (2:10).
+        function parsePreviewTime(raw, fallback) {
+            const s = String(raw == null ? '' : raw).trim().replace(',', '.').replace(':', '.');
+            if (!s) return fallback;
+            let total;
+            if (s.indexOf('.') === -1) {
+                total = parseInt(s, 10);
+            } else {
+                const parts = s.split('.');
+                total = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+            }
+            return total > 0 ? total : fallback;
+        }
+        function formatPreviewTime(sec) {
+            sec = Math.max(0, Math.round(Number(sec) || 0));
+            return Math.floor(sec / 60) + '.' + String(sec % 60).padStart(2, '0');
+        }
+
         function toggleAddNoPreviewFields() {
             const noPreview = document.getElementById('videoNoPreview').checked;
             const row = document.getElementById('videoPreviewAdRow');
@@ -3357,7 +3495,7 @@
                 size: finalSize,
                 views: initialViews,
                 likes: initialLikes,
-                previewSeconds: previewSecondsRaw !== '' ? parseInt(previewSecondsRaw) : 5,
+                previewSeconds: parsePreviewTime(previewSecondsRaw, 5),
                 adLink: adLink,
                 noPreview: noPreview,
                 date: new Date().toISOString()
@@ -3437,7 +3575,7 @@
                 try {
                     const url = await uploadImageToImgbb(files[i], (pct) => {
                         statusEl.textContent = `Foto ${i + 1}/${files.length}: ${pct}%`;
-                    });
+                    }, 1600);
                     added.push({
                         id: 'photo_' + stamp + '_' + i,
                         title: (totalItems === 1 && titleRaw) ? titleRaw : cleanName(files[i].name),
@@ -3662,7 +3800,7 @@
             document.getElementById('editNoPreviewGroup').style.display = 'flex';
             document.getElementById('editPreviewAdRow').style.display = 'flex';
             document.getElementById('editNoPreviewInput').checked = !!video.noPreview;
-            document.getElementById('editPreviewSecondsInput').value = video.previewSeconds || 5;
+            document.getElementById('editPreviewSecondsInput').value = formatPreviewTime(video.previewSeconds || 5);
             document.getElementById('editAdLinkInput').value = video.adLink || '';
             toggleEditNoPreviewFields();
             document.getElementById('editFolderPaidGroup').style.display = 'none';
@@ -3781,7 +3919,7 @@
                 video.size = newSize;
                 video.views = newViews !== '' ? parseInt(newViews) : (video.views || 0);
                 video.likes = newLikes !== '' ? parseInt(newLikes) : (video.likes || 0);
-                video.previewSeconds = newPreviewSeconds !== '' ? parseInt(newPreviewSeconds) : 5;
+                video.previewSeconds = parsePreviewTime(newPreviewSeconds, 5);
                 video.adLink = newAdLink;
                 video.noPreview = newNoPreview;
 
