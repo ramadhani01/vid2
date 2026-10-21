@@ -3424,12 +3424,19 @@
             adLinkInput.disabled = noPreview;
         }
 
+        // Auto-ubah link videy.co/v/?id=XXX -> https://cdn.videy.co/XXX.mp4
+        function convertVideyUrl(url) {
+            if (!url) return url;
+            const m = String(url).trim().match(/^https?:\/\/(?:www\.)?videy\.co\/v\/?\?(?:[^#]*&)?id=([A-Za-z0-9_-]+)/i);
+            return m ? 'https://cdn.videy.co/' + m[1] + '.mp4' : url;
+        }
+
         document.getElementById('addVideoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
             const title = document.getElementById('videoTitle').value.trim();
             const thumb = document.getElementById('videoThumb').value.trim();
-            const manualUrl = document.getElementById('videoUrl').value.trim();
+            const manualUrl = convertVideyUrl(document.getElementById('videoUrl').value.trim());
             const manualSize = document.getElementById('videoSize').value.trim();
             const viewsRaw = document.getElementById('videoViews').value.trim();
             const likesRaw = document.getElementById('videoLikes').value.trim();
@@ -3915,7 +3922,7 @@
                 if (!video) { showNotification('❌ Video tidak ditemukan!', 'error'); return; }
                 video.title = newTitle;
                 video.thumbnail = newThumb;
-                video.url = newUrl;
+                video.url = convertVideyUrl(newUrl);
                 video.size = newSize;
                 video.views = newViews !== '' ? parseInt(newViews) : (video.views || 0);
                 video.likes = newLikes !== '' ? parseInt(newLikes) : (video.likes || 0);
