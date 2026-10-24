@@ -3176,7 +3176,8 @@
                             ${thumbHtml}
                             ${item.paid ? (isFolderUnlocked(item.id)
                                 ? `<div class="folder-paid-badge unlocked"><i class="fas fa-unlock"></i> DIBELI</div>`
-                                : `<div class="folder-paid-badge locked"><i class="fas fa-lock"></i> PAID</div>`) : ''}
+                                : `<div class="folder-paid-badge locked"><i class="fas fa-lock"></i> PAID</div>`)
+                                : `<div class="folder-paid-badge unlocked"><i class="fas fa-unlock"></i> FREE</div>`}
                             <div class="folder-count-badge"><i class="fas fa-video"></i> ${item.videos.length}${(item.photos && item.photos.length) ? ` &nbsp;<i class="fas fa-image"></i> ${item.photos.length}` : ''}</div>
                         </div>
                         <div class="info">
