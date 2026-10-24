@@ -1936,14 +1936,26 @@
         async function fetchVdoseThumbnail(videoUrl) {
             const token = extractVdoseToken(videoUrl);
             if (!token) return { url: '', reason: 'bukan link slicndrive' };
-            let info;
-            try {
-                const res = await fetch(VDOSE_API + encodeURIComponent(token), { cache: 'no-store' });
-                if (!res.ok) return { url: '', reason: 'API vdose membalas ' + res.status };
-                info = await res.json();
-            } catch (e) {
-                return { url: '', reason: 'API vdose tidak bisa diakses dari browser (' + e.message + ')' };
+            // Coba lewat perantara Vercel (/api/thumb) dulu karena API vdose
+            // memblokir panggilan langsung dari browser (CORS). Kalau perantara
+            // belum dipasang, baru coba langsung ke vdose.
+            const enc = encodeURIComponent(token);
+            const endpoints = ['/api/thumb?token=' + enc, VDOSE_API + enc];
+            let info = null;
+            let lastErr = '';
+            for (const endpoint of endpoints) {
+                try {
+                    const res = await fetch(endpoint, { cache: 'no-store' });
+                    if (!res.ok) { lastErr = endpoint + ' membalas ' + res.status; continue; }
+                    const ct = res.headers.get('content-type') || '';
+                    if (ct.indexOf('json') === -1) { lastErr = endpoint + ' tidak membalas JSON'; continue; }
+                    info = await res.json();
+                    break;
+                } catch (e) {
+                    lastErr = endpoint + ' gagal (' + e.message + ')';
+                }
             }
+            if (!info) return { url: '', reason: 'API thumbnail tidak bisa diakses: ' + lastErr };
             const thumbId = info && info.thumb_id ? String(info.thumb_id) : '';
             if (!thumbId) return { url: '', reason: 'API vdose tidak mengirim thumb_id' };
             if (/^https?:\/\//i.test(thumbId)) return { url: thumbId, reason: 'ok' };
