@@ -204,6 +204,10 @@
         .whatsapp-banner .whatsapp-edit-btn:hover { background: rgba(0,0,0,0.3); }
         .whatsapp-banner .whatsapp-edit-btn.visible { display: inline-block; }
 
+        /* TEKS BANNER TELEGRAM & WHATSAPP DI TENGAH */
+        .telegram-banner, .whatsapp-banner { justify-content: center; }
+        .telegram-banner span, .whatsapp-banner span { flex: 0 1 auto; text-align: center; }
+
         /* WHATSAPP ADMIN EDITOR */
         .whatsapp-admin-panel {
             max-width: 1200px;
@@ -1051,7 +1055,7 @@
     <!-- TELEGRAM BANNER -->
     <a href="https://t.me/sachiexyz" target="_blank" rel="noopener" class="telegram-banner" id="telegramBanner">
         <i class="fab fa-telegram"></i>
-        <span>JOIN TELEGRAM UNTUK UPDATE VIDEO VIRAL</span>
+        <span>JOIN SALURAN TELEGRAM UNTUK UPDATE VIDEO VIRAL</span>
         <button class="telegram-edit-btn" id="telegramEditBtn" onclick="toggleTelegramEditor(event)">
             <i class="fas fa-pen"></i> Edit
         </button>
@@ -1060,7 +1064,7 @@
     <!-- WHATSAPP BANNER -->
     <a href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener" class="whatsapp-banner" id="whatsappBanner">
         <i class="fab fa-whatsapp"></i>
-        <span>JOIN SALURAN WHATSAPP</span>
+        <span>JOIN SALURAN WHATSAPP UNTUK UPDATE VIDEO VIRAL</span>
         <button class="whatsapp-edit-btn" id="whatsappEditBtn" onclick="toggleWhatsappEditor(event)">
             <i class="fas fa-pen"></i> Edit
         </button>
@@ -1208,9 +1212,6 @@
         <!-- Form Tambah Video -->
         <div class="admin-form active" id="formVideo">
             <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Video Baru</h3>
-            <p style="color:#666; font-size:12px; margin-bottom:15px;">
-                <i class="fas fa-info-circle"></i> Upload file akan disimpan ke Supabase Storage (bucket <code>videos</code>, harus public) agar hasilnya berupa URL file langsung yang pasti bisa diputar.
-            </p>
             <form id="addVideoForm">
                 <div class="form-group">
                     <label>Judul Video</label>
@@ -1228,34 +1229,24 @@
                     <span id="videoThumbStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
                 </div>
                 <div class="form-group">
-                    <label>Upload File Video (MP4/WebM — akan diupload & langsung bisa diputar)</label>
-                    <input type="file" id="videoFile" accept="video/*" onchange="autoFillVideoSize(this)">
-                    <div id="uploadProgressWrap" style="display:none; margin-top:10px;">
-                        <div style="background:#14151A; border:1px solid #2a2a2a; border-radius:6px; overflow:hidden; height:10px;">
-                            <div id="uploadProgressBar" style="height:100%; width:0%; background:#f59b00; transition:width .2s;"></div>
-                        </div>
-                        <div id="uploadProgressText" style="color:#888; font-size:12px; margin-top:4px;">0%</div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Atau URL Video Langsung (file .mp4 langsung — isi ini JIKA tidak upload file di atas)</label>
+                    <label>URL Video</label>
                     <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
                 </div>
                 <div class="form-group">
-                    <label>URL Video Berbayar (Opsional) — link .mp4 langsung tanpa iklan. Dipakai kalau folder sudah dibeli; kalau kosong, tetap pakai URL di atas</label>
+                    <label>URL Video Berbayar</label>
                     <input type="url" id="videoPaidUrl" placeholder="https://example.com/video-berbayar.mp4">
                 </div>
                 <div class="form-group">
-                    <label>Ukuran File (otomatis terisi kalau upload file, atau isi manual)</label>
+                    <label>Ukuran File</label>
                     <input type="text" id="videoSize" placeholder="198mb">
                 </div>
                 <div class="row" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Jumlah Ditonton Awal (Opsional)</label>
+                        <label>View</label>
                         <input type="number" id="videoViews" min="0" placeholder="Kosongkan untuk acak">
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label>Jumlah Suka Awal (Opsional)</label>
+                        <label>Like</label>
                         <input type="number" id="videoLikes" min="0" placeholder="Kosongkan untuk acak">
                     </div>
                 </div>
@@ -1265,11 +1256,11 @@
                 </div>
                 <div class="row" id="videoPreviewAdRow" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Durasi Preview (menit.detik, mis. 0.30 / 2.10)</label>
+                        <label>Durasi Preview</label>
                         <input type="text" inputmode="decimal" id="videoPreviewSeconds" placeholder="0.05" value="0.05">
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label>URL Ad Link (khusus video ini)</label>
+                        <label>URL Ad Link</label>
                         <input type="url" id="videoAdLink" placeholder="https://move2link.co/xxxxx">
                     </div>
                 </div>
@@ -1313,16 +1304,13 @@
         <!-- Form Tambah Foto -->
         <div class="admin-form" id="formPhoto">
             <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Foto ke Folder</h3>
-            <p style="color:#666; font-size:12px; margin-bottom:15px;">
-                <i class="fas fa-info-circle"></i> Foto hanya bisa ditambahkan ke dalam folder (tidak tampil di Root). Bisa pilih banyak foto sekaligus.
-            </p>
             <form id="addPhotoForm">
                 <div class="form-group">
                     <label>Simpan di Folder</label>
                     <select id="photoFolder" required></select>
                 </div>
                 <div class="form-group">
-                    <label>Judul Foto (Opsional — kalau upload banyak foto, judul diambil dari nama file)</label>
+                    <label>Judul Foto</label>
                     <input type="text" id="photoTitle" placeholder="Misal: Foto 1">
                 </div>
                 <div class="form-group">
@@ -1430,11 +1418,11 @@
                     <input type="url" id="editUrlInput" placeholder="https://videy.co/v/?id=xxx">
                 </div>
                 <div class="form-group" id="editPaidUrlGroup" style="display:none;">
-                    <label>URL Video Berbayar (Opsional) — .mp4 langsung tanpa iklan, dipakai kalau folder sudah dibeli</label>
+                    <label>URL Video Berbayar</label>
                     <input type="url" id="editPaidUrlInput" placeholder="https://example.com/video-berbayar.mp4">
                 </div>
                 <div class="form-group" id="editGoLinkGroup" style="display:none;">
-                    <label>Link Langsung (menuju & menandai kartu ini, tidak membuka apa pun)</label>
+                    <label>Link Kartu</label>
                     <div style="display:flex; gap:8px;">
                         <input type="text" id="editGoLinkInput" readonly style="flex:1; opacity:0.8;">
                         <button type="button" class="btn-submit" style="padding:10px 16px;" onclick="copyGoLink()"><i class="fas fa-copy"></i></button>
@@ -1454,7 +1442,7 @@
                 </div>
                 <div class="row" id="editPreviewAdRow" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;">
-                        <label>Durasi Preview (menit.detik, mis. 0.30 / 2.10)</label>
+                        <label>Durasi Preview</label>
                         <input type="text" inputmode="decimal" id="editPreviewSecondsInput" placeholder="0.05">
                     </div>
                     <div class="form-group" style="flex:1;">
@@ -1464,23 +1452,22 @@
                 </div>
                 <div class="form-group" id="editFolderPaidGroup" style="display:none; align-items:center; gap:8px;">
                     <input type="checkbox" id="editFolderPaidInput" onchange="toggleEditFolderPaidFields()" style="width:auto; accent-color:#f59b00;">
-                    <label for="editFolderPaidInput" style="margin:0; color:#ccc;">Folder Berbayar (Paid) — video di dalamnya harus dibeli dulu sebelum bisa dibuka</label>
+                    <label for="editFolderPaidInput" style="margin:0; color:#ccc;">Berbayar</label>
                 </div>
                 <div class="form-group" id="editFolderDualGroup" style="display:none; align-items:center; gap:8px;">
                     <input type="checkbox" id="editFolderDualInput" onchange="toggleEditFolderPaidFields()" style="width:auto; accent-color:#22c55e;">
-                    <label for="editFolderDualInput" style="margin:0; color:#ccc;">Mode 2 Pilihan (Berbayar &amp; Gratis) — folder tanpa logo PAID/FREE. Saat video diklik, pengunjung memilih: Berbayar (buka semua video) atau Gratis (ada iklan)</label>
+                    <label for="editFolderDualInput" style="margin:0; color:#ccc;">MODE 2</label>
                 </div>
                 <div class="form-group" id="editFolderBuyLinkGroup" style="display:none;">
-                    <label>URL Link Beli (Move2link Khusus Beli Folder Ini)</label>
+                    <label>URL Link Beli</label>
                     <input type="url" id="editFolderBuyLinkInput" placeholder="https://move2link.co/xxxxx">
                 </div>
                 <div class="form-group" id="editFolderDeepLinkGroup" style="display:none;">
-                    <label>Deep Link Folder (pakai ini sebagai Destination URL di Move2link)</label>
+                    <label>Link Unlock</label>
                     <div style="display:flex; gap:8px;">
                         <input type="text" id="editFolderDeepLinkInput" readonly style="flex:1; opacity:0.8;">
                         <button type="button" class="btn-submit" style="padding:10px 16px;" onclick="copyFolderDeepLink()"><i class="fas fa-copy"></i></button>
                     </div>
-                    <small style="color:#666; display:block; margin-top:6px;">Tempel link di atas sebagai "Destination URL" pada campaign Move2link kamu. Setelah pengunjung menyelesaikan langkah di Move2link, mereka otomatis diarahkan balik ke sini dan folder ini langsung terbuka di HP mereka.</small>
                 </div>
                 <div class="form-group" id="editStatsGroup">
                     <label>Ukuran File</label>
@@ -3596,11 +3583,10 @@
             const adLink = document.getElementById('videoAdLink').value.trim();
             const noPreview = document.getElementById('videoNoPreview').checked;
             const folderId = document.getElementById('videoFolder').value;
-            const fileInput = document.getElementById('videoFile');
-            const file = fileInput.files && fileInput.files[0];
+            const file = null; // upload file video sudah dihapus dari form
 
             if (!title) { showNotification('Judul harus diisi!', 'error'); return; }
-            if (!file && !manualUrl) { showNotification('Upload file video ATAU isi URL video langsung!', 'error'); return; }
+            if (!file && !manualUrl) { showNotification('URL video harus diisi!', 'error'); return; }
 
             const btn = document.getElementById('btnAddVideo');
             btn.disabled = true;
@@ -3677,7 +3663,6 @@
 
             await saveToCloud();
             showNotification(`✅ Video "${title}" berhasil ditambahkan!`, 'success');
-            document.getElementById('uploadProgressWrap').style.display = 'none';
             this.reset();
             toggleAddNoPreviewFields();
             renderCurrentView();
@@ -4016,7 +4001,7 @@
             document.getElementById('editFolderDeepLinkInput').value = window.location.origin + window.location.pathname + '?unlockFolder=' + encodeURIComponent(folder.id);
             document.getElementById('editGoLinkGroup').style.display = 'block';
             document.getElementById('editGoLinkInput').value = buildGoLink('folder', folder.id);
-            document.getElementById('editGoLinkHint').textContent = 'Menggulir langsung ke folder ini dan menandainya (tidak membuka).';
+            document.getElementById('editGoLinkHint').textContent = '';
             toggleEditFolderPaidFields();
 
             document.getElementById('editModal').classList.add('visible');
