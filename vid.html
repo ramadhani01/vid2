@@ -1458,6 +1458,10 @@
                     <input type="checkbox" id="editFolderPaidInput" onchange="toggleEditFolderPaidFields()" style="width:auto; accent-color:#f59b00;">
                     <label for="editFolderPaidInput" style="margin:0; color:#ccc;">Folder Berbayar (Paid) — video di dalamnya harus dibeli dulu sebelum bisa dibuka</label>
                 </div>
+                <div class="form-group" id="editFolderDualGroup" style="display:none; align-items:center; gap:8px;">
+                    <input type="checkbox" id="editFolderDualInput" onchange="toggleEditFolderPaidFields()" style="width:auto; accent-color:#22c55e;">
+                    <label for="editFolderDualInput" style="margin:0; color:#ccc;">Mode 2 Pilihan (Berbayar &amp; Gratis) — folder tanpa logo PAID/FREE. Saat video diklik, pengunjung memilih: Berbayar (buka semua video) atau Gratis (ada iklan)</label>
+                </div>
                 <div class="form-group" id="editFolderBuyLinkGroup" style="display:none;">
                     <label>URL Link Beli (Move2link Khusus Beli Folder Ini)</label>
                     <input type="url" id="editFolderBuyLinkInput" placeholder="https://move2link.co/xxxxx">
@@ -1500,6 +1504,20 @@
                 Folder ini berbayar. Beli akses untuk membuka video di dalamnya.
             </p>
             <button type="button" class="btn-submit" id="buyFolderConfirmBtn" onclick="proceedToBuyFolder()"><i class="fas fa-shopping-cart"></i> Beli Sekarang</button>
+        </div>
+    </div>
+
+    <!-- DUAL CHOICE MODAL (Mode 2 Pilihan: Berbayar / Gratis) -->
+    <div class="modal-overlay" id="dualChoiceModal">
+        <div class="modal-box" style="max-width:380px; text-align:center;">
+            <button type="button" class="modal-close-x" onclick="closeDualChoiceModal()" aria-label="Tutup"><i class="fas fa-times"></i></button>
+            <i class="fas fa-circle-play" style="font-size:36px; color:#f59b00; margin-bottom:12px; display:block;"></i>
+            <h2 style="margin-bottom:8px;">Pilih Cara Menonton</h2>
+            <p style="color:#aaa; font-size:14px; margin-bottom:18px;" id="dualChoiceMessage"></p>
+            <button type="button" class="btn-submit" style="width:100%; margin-bottom:6px;" onclick="chooseDualPaid()"><i class="fas fa-lock-open"></i> Berbayar</button>
+            <p style="color:#aaa; font-size:12px; margin-bottom:16px;">Membuka semua video di folder ini.</p>
+            <button type="button" class="btn-submit" style="width:100%; margin-bottom:6px; background:#22c55e; color:#0c1a10;" onclick="chooseDualFree()"><i class="fas fa-play"></i> Gratis</button>
+            <p style="color:#aaa; font-size:12px;">Ada iklan.</p>
         </div>
     </div>
 
@@ -1886,6 +1904,56 @@
             });
         }
 
+        // ==========================================================
+        // THUMBNAIL OTOMATIS DARI VDOSE
+        // Link video: https://cdn2.slicndrive.com/<TOKEN>.mp4
+        // API       : https://vdose.co/api/videos/by-token/<TOKEN>
+        // API mengembalikan "thumb_id" (path gambar, mis. thumbs/2026/10/xxx.jpg),
+        // lalu path itu digabung dengan salah satu domain di THUMB_BASES.
+        // Domain pertama yang gambarnya benar-benar bisa dimuat dipakai.
+        // Kalau domain gambar berubah, ganti/tambahkan di daftar ini.
+        // ==========================================================
+        const VDOSE_API = 'https://vdose.co/api/videos/by-token/';
+        const THUMB_BASES = [
+            'https://thumbs.alflix.cv/'
+        ];
+
+        function extractVdoseToken(url) {
+            const m = String(url || '').trim().match(/^https?:\/\/(?:[^\/]+\.)?slicndrive\.com\/([A-Za-z0-9_-]+)\.mp4(?:[?#].*)?$/i);
+            return m ? m[1] : '';
+        }
+
+        function probeImageUrl(url, timeoutMs = 8000) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const t = setTimeout(() => { img.onload = img.onerror = null; resolve(false); }, timeoutMs);
+                img.onload = () => { clearTimeout(t); resolve(img.naturalWidth > 0); };
+                img.onerror = () => { clearTimeout(t); resolve(false); };
+                img.src = url;
+            });
+        }
+
+        async function fetchVdoseThumbnail(videoUrl) {
+            const token = extractVdoseToken(videoUrl);
+            if (!token) return { url: '', reason: 'bukan link slicndrive' };
+            let info;
+            try {
+                const res = await fetch(VDOSE_API + encodeURIComponent(token), { cache: 'no-store' });
+                if (!res.ok) return { url: '', reason: 'API vdose membalas ' + res.status };
+                info = await res.json();
+            } catch (e) {
+                return { url: '', reason: 'API vdose tidak bisa diakses dari browser (' + e.message + ')' };
+            }
+            const thumbId = info && info.thumb_id ? String(info.thumb_id) : '';
+            if (!thumbId) return { url: '', reason: 'API vdose tidak mengirim thumb_id' };
+            if (/^https?:\/\//i.test(thumbId)) return { url: thumbId, reason: 'ok' };
+            for (const base of THUMB_BASES) {
+                const candidate = base + thumbId.replace(/^\/+/, '');
+                if (await probeImageUrl(candidate)) return { url: candidate, reason: 'ok' };
+            }
+            return { url: '', reason: 'thumb_id ditemukan (' + thumbId + ') tapi domain gambarnya belum cocok' };
+        }
+
         function formatBytes(bytes) {
             if (!bytes) return '';
             const units = ['b', 'kb', 'mb', 'gb'];
@@ -2069,11 +2137,12 @@
             let unlockedByPaidFolder = false;
             if (isFolderView) {
                 const parentFolder = data.folders.find(f => f.id === currentFolderId);
-                if (parentFolder && parentFolder.paid) {
+                if (parentFolder && (parentFolder.paid || parentFolder.dual)) {
                     if (isFolderUnlocked(parentFolder.id)) {
                         unlockedByPaidFolder = true;
                     } else if (!bypassPaidGate) {
-                        openBuyFolderModal(parentFolder);
+                        if (parentFolder.dual) openDualChoiceModal(parentFolder, id);
+                        else openBuyFolderModal(parentFolder);
                         return;
                     }
                 }
@@ -2343,6 +2412,45 @@
             // ini — dan token yang tersimpan di HP ini tadi yang membuktikan
             // bahwa HP inilah yang memulai pembelian.
             window.location.href = link;
+        }
+
+        // ==========================================================
+        // MODE 2 PILIHAN: klik video di folder -> pilih Berbayar / Gratis
+        // ==========================================================
+        let pendingDualFolder = null;
+        let pendingDualVideoId = null;
+
+        function openDualChoiceModal(folder, videoId) {
+            pendingDualFolder = folder;
+            pendingDualVideoId = videoId;
+            document.getElementById('dualChoiceMessage').textContent =
+                `Folder "${folder.name}" punya 2 pilihan akses. Mau pilih yang mana?`;
+            document.getElementById('dualChoiceModal').classList.add('visible');
+        }
+
+        function closeDualChoiceModal() {
+            document.getElementById('dualChoiceModal').classList.remove('visible');
+            pendingDualFolder = null;
+            pendingDualVideoId = null;
+        }
+
+        document.getElementById('dualChoiceModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDualChoiceModal();
+        });
+
+        function chooseDualPaid() {
+            if (!pendingDualFolder) return;
+            const folder = pendingDualFolder;
+            closeDualChoiceModal();
+            pendingBuyFolder = folder;
+            proceedToBuyFolder();
+        }
+
+        function chooseDualFree() {
+            if (!pendingDualFolder) return;
+            const videoId = pendingDualVideoId;
+            closeDualChoiceModal();
+            playVideo(videoId, true, true);
         }
 
         function confirmContinueWatching() {
@@ -3032,7 +3140,7 @@
         // FOTO (hanya di dalam folder)
         // ==========================================================
         function renderPhotoCards(folder, photos, showDelete) {
-            const locked = !!(folder && folder.paid && !isFolderUnlocked(folder.id));
+            const locked = !!(folder && (folder.paid || folder.dual) && !isFolderUnlocked(folder.id));
             return photos.map(p => `
                 <div class="video-card photo-card ${locked ? 'locked' : ''}" data-id="${p.id}" onclick="if(!event.target.closest('.delete-btn')) { openPhoto('${p.id}'); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deletePhoto('${p.id}')"><i class="fas fa-times"></i></button>` : ''}
@@ -3057,7 +3165,7 @@
             if (!folder) return;
 
             // Folder berbayar & belum dibeli di HP ini: minta beli dulu (sama seperti video)
-            if (folder.paid && !isFolderUnlocked(folder.id)) {
+            if ((folder.paid || folder.dual) && !isFolderUnlocked(folder.id)) {
                 openBuyFolderModal(folder);
                 return;
             }
@@ -3174,7 +3282,7 @@
                         ` : ''}
                         <div class="thumb">
                             ${thumbHtml}
-                            ${item.paid ? (isFolderUnlocked(item.id)
+                            ${item.dual ? '' : item.paid ? (isFolderUnlocked(item.id)
                                 ? `<div class="folder-paid-badge unlocked"><i class="fas fa-unlock"></i> DIBELI</div>`
                                 : `<div class="folder-paid-badge locked"><i class="fas fa-lock"></i> PAID</div>`)
                                 : `<div class="folder-paid-badge unlocked"><i class="fas fa-unlock"></i> FREE</div>`}
@@ -3500,7 +3608,15 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
             let finalThumb = thumb;
-            if (!finalThumb && finalUrl) {
+            if (!finalThumb && finalUrl && extractVdoseToken(finalUrl)) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengambil thumbnail dari vdose...';
+                const vd = await fetchVdoseThumbnail(finalUrl);
+                finalThumb = vd.url;
+                if (!finalThumb) {
+                    console.warn('Thumbnail vdose gagal:', vd.reason);
+                    showNotification('⚠️ Gagal ambil thumbnail otomatis dari vdose (' + vd.reason + '). Video tetap disimpan, thumbnail bisa diisi manual lewat tombol Edit.', 'error');
+                }
+            } else if (!finalThumb && finalUrl) {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengambil thumbnail dari video...';
                 const captured = await captureVideoFrameThumbnail(finalUrl);
                 finalThumb = captured.url;
@@ -3717,6 +3833,7 @@
             document.getElementById('editStatsGroup').style.display = 'none';
             document.getElementById('editStatsRow').style.display = 'none';
             document.getElementById('editFolderPaidGroup').style.display = 'none';
+            document.getElementById('editFolderDualGroup').style.display = 'none';
             document.getElementById('editFolderBuyLinkGroup').style.display = 'none';
             document.getElementById('editFolderDeepLinkGroup').style.display = 'none';
             document.getElementById('editModal').classList.add('visible');
@@ -3828,6 +3945,7 @@
             document.getElementById('editAdLinkInput').value = video.adLink || '';
             toggleEditNoPreviewFields();
             document.getElementById('editFolderPaidGroup').style.display = 'none';
+            document.getElementById('editFolderDualGroup').style.display = 'none';
             document.getElementById('editFolderBuyLinkGroup').style.display = 'none';
             document.getElementById('editFolderDeepLinkGroup').style.display = 'none';
             document.getElementById('editStatsGroup').style.display = 'block';
@@ -3857,9 +3975,11 @@
             document.getElementById('editStatsRow').style.display = 'none';
 
             document.getElementById('editFolderPaidGroup').style.display = 'flex';
+            document.getElementById('editFolderDualGroup').style.display = 'flex';
             document.getElementById('editFolderBuyLinkGroup').style.display = 'block';
             document.getElementById('editFolderDeepLinkGroup').style.display = 'block';
-            document.getElementById('editFolderPaidInput').checked = !!folder.paid;
+            document.getElementById('editFolderPaidInput').checked = !!folder.paid && !folder.dual;
+            document.getElementById('editFolderDualInput').checked = !!folder.dual;
             document.getElementById('editFolderBuyLinkInput').value = folder.buyLink || '';
             document.getElementById('editFolderDeepLinkInput').value = window.location.origin + window.location.pathname + '?unlockFolder=' + encodeURIComponent(folder.id);
             document.getElementById('editGoLinkGroup').style.display = 'block';
@@ -3871,11 +3991,15 @@
         }
 
         function toggleEditFolderPaidFields() {
-            const paid = document.getElementById('editFolderPaidInput').checked;
+            const paidInput = document.getElementById('editFolderPaidInput');
+            const dual = document.getElementById('editFolderDualInput').checked;
+            if (dual) paidInput.checked = false;
+            paidInput.disabled = dual;
+            const needBuyLink = paidInput.checked || dual;
             const buyLinkGroup = document.getElementById('editFolderBuyLinkGroup');
             const buyLinkInput = document.getElementById('editFolderBuyLinkInput');
-            buyLinkGroup.style.opacity = paid ? '1' : '0.4';
-            buyLinkInput.disabled = !paid;
+            buyLinkGroup.style.opacity = needBuyLink ? '1' : '0.4';
+            buyLinkInput.disabled = !needBuyLink;
         }
 
         function copyFolderDeepLink() {
@@ -3964,7 +4088,8 @@
                 if (!folder) { showNotification('❌ Folder tidak ditemukan!', 'error'); return; }
                 folder.name = newTitle;
                 folder.thumbnail = newThumb;
-                folder.paid = document.getElementById('editFolderPaidInput').checked;
+                folder.dual = document.getElementById('editFolderDualInput').checked;
+                folder.paid = folder.dual ? false : document.getElementById('editFolderPaidInput').checked;
                 folder.buyLink = document.getElementById('editFolderBuyLinkInput').value.trim();
 
                 await saveToCloud();
