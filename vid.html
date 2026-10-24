@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
     <title>Vidoy Stream</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -2132,6 +2131,16 @@
             return /\.(mp4|webm|m4v|mov|ogv|m3u8)(\?|#|$)/i.test(url);
         }
 
+        // Host yang link-nya punya alur iklan sendiri (tidak bisa diputar di tag <video>
+        // maupun iframe) -> langsung dibuka lewat alur link-nya di tab baru.
+        const FOLLOW_LINK_HOSTS = ['slicndrive.com', 'aceming.com'];
+        function isFollowLinkUrl(url) {
+            try {
+                const h = new URL(url).hostname.toLowerCase();
+                return FOLLOW_LINK_HOSTS.some(d => h === d || h.endsWith('.' + d));
+            } catch (e) { return false; }
+        }
+
         function removeExternalPlayer() {
             const old = document.getElementById('externalPlayerWrap');
             if (old) old.remove();
@@ -2179,7 +2188,7 @@
             loading.style.display = 'block';
             errorLink.href = item.url;
 
-            if (!isDirectVideoUrl(item.url)) {
+            if (!isDirectVideoUrl(item.url) || isFollowLinkUrl(item.url)) {
                 loading.style.display = 'none';
                 poster.style.display = 'block';
                 window.open(item.url, '_blank');
@@ -2198,7 +2207,12 @@
             player.onerror = function() {
                 loading.style.display = 'none';
                 player.style.display = 'none';
-                errorBox.classList.add('visible');
+                const w = window.open(item.url, '_blank');
+                if (w) {
+                    poster.style.display = 'block';
+                } else {
+                    errorBox.classList.add('visible');
+                }
             };
             player.play().catch(() => {});
         }
