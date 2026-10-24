@@ -1055,7 +1055,7 @@
     <!-- TELEGRAM BANNER -->
     <a href="https://t.me/sachiexyz" target="_blank" rel="noopener" class="telegram-banner" id="telegramBanner">
         <i class="fab fa-telegram"></i>
-        <span>JOIN SALURAN TELEGRAM UNTUK UPDATE VIDEO VIRAL</span>
+        <span>JOIN TELEGRAM UNTUK UPDATE VIDEO VIRAL</span>
         <button class="telegram-edit-btn" id="telegramEditBtn" onclick="toggleTelegramEditor(event)">
             <i class="fas fa-pen"></i> Edit
         </button>
@@ -1421,16 +1421,8 @@
                     <label>URL Video Berbayar</label>
                     <input type="url" id="editPaidUrlInput" placeholder="https://example.com/video-berbayar.mp4">
                 </div>
-                <div class="form-group" id="editGoLinkGroup" style="display:none;">
-                    <label>Link Kartu</label>
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="editGoLinkInput" readonly style="flex:1; opacity:0.8;">
-                        <button type="button" class="btn-submit" style="padding:10px 16px;" onclick="copyGoLink()"><i class="fas fa-copy"></i></button>
-                    </div>
-                    <small id="editGoLinkHint" style="color:#666; display:block; margin-top:6px;"></small>
-                </div>
                 <div class="form-group" id="editDeepLinkGroup">
-                    <label>Deep Link (pakai ini sebagai Destination URL di Move2link)</label>
+                    <label>Link Unlock</label>
                     <div style="display:flex; gap:8px;">
                         <input type="text" id="editDeepLinkInput" readonly style="flex:1; opacity:0.8;">
                         <button type="button" class="btn-submit" style="padding:10px 16px;" onclick="copyDeepLink()"><i class="fas fa-copy"></i></button>
@@ -2547,9 +2539,6 @@
         //   ?f=ID_FOLDER -> halaman menggulir ke kartu folder itu dan menandainya.
         // Tanda hilang saat layar disentuh / di-klik.
         // ==========================================================
-        function buildGoLink(type, id) {
-            return window.location.origin + window.location.pathname + '?' + (type === 'folder' ? 'f' : 'v') + '=' + encodeURIComponent(id);
-        }
 
         let goTargetCard = null;
 
@@ -2602,17 +2591,6 @@
             }
         }
 
-        function copyGoLink() {
-            const input = document.getElementById('editGoLinkInput');
-            input.select();
-            input.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(input.value).then(() => {
-                showNotification('✅ Link langsung disalin!', 'success');
-            }).catch(() => {
-                document.execCommand('copy');
-                showNotification('✅ Link langsung disalin!', 'success');
-            });
-        }
 
         function closeVideoDetail() {
             removeExternalPlayer();
@@ -3841,7 +3819,7 @@
             document.getElementById('editUrlLabel').textContent = 'URL Link Tujuan (Opsional)';
             document.getElementById('editUrlInput').value = banner.link || '';
             document.getElementById('editPaidUrlGroup').style.display = 'none';
-            document.getElementById('editDeepLinkGroup').style.display = 'none'; document.getElementById('editGoLinkGroup').style.display = 'none';
+            document.getElementById('editDeepLinkGroup').style.display = 'none';
             document.getElementById('editNoPreviewGroup').style.display = 'none';
             document.getElementById('editPreviewAdRow').style.display = 'none';
             document.getElementById('editStatsGroup').style.display = 'none';
@@ -3951,9 +3929,6 @@
             document.getElementById('editPaidUrlInput').value = video.paidUrl || '';
             document.getElementById('editDeepLinkGroup').style.display = 'block';
             document.getElementById('editDeepLinkInput').value = window.location.origin + window.location.pathname + '?unlock=' + encodeURIComponent(video.id);
-            document.getElementById('editGoLinkGroup').style.display = 'block';
-            document.getElementById('editGoLinkInput').value = buildGoLink('video', video.id);
-            document.getElementById('editGoLinkHint').textContent = 'Menggulir langsung ke video ini dan menandainya (tidak membuka). Kalau video ada di dalam folder, folder-nya yang ditandai.';
             document.getElementById('editNoPreviewGroup').style.display = 'flex';
             document.getElementById('editPreviewAdRow').style.display = 'flex';
             document.getElementById('editNoPreviewInput').checked = !!video.noPreview;
@@ -3985,7 +3960,7 @@
             document.getElementById('editThumbInput').value = folder.thumbnail || '';
             document.getElementById('editUrlGroup').style.display = 'none';
             document.getElementById('editPaidUrlGroup').style.display = 'none';
-            document.getElementById('editDeepLinkGroup').style.display = 'none'; document.getElementById('editGoLinkGroup').style.display = 'none';
+            document.getElementById('editDeepLinkGroup').style.display = 'none';
             document.getElementById('editNoPreviewGroup').style.display = 'none';
             document.getElementById('editPreviewAdRow').style.display = 'none';
             document.getElementById('editStatsGroup').style.display = 'none';
@@ -3999,9 +3974,6 @@
             document.getElementById('editFolderDualInput').checked = !!folder.dual;
             document.getElementById('editFolderBuyLinkInput').value = folder.buyLink || '';
             document.getElementById('editFolderDeepLinkInput').value = window.location.origin + window.location.pathname + '?unlockFolder=' + encodeURIComponent(folder.id);
-            document.getElementById('editGoLinkGroup').style.display = 'block';
-            document.getElementById('editGoLinkInput').value = buildGoLink('folder', folder.id);
-            document.getElementById('editGoLinkHint').textContent = '';
             toggleEditFolderPaidFields();
 
             document.getElementById('editModal').classList.add('visible');
@@ -4044,7 +4016,6 @@
         }
 
         function closeEditModal() {
-            document.getElementById('editGoLinkGroup').style.display = 'none';
             document.getElementById('editModal').classList.remove('visible');
             editContext = null;
         }
