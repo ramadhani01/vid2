@@ -1242,6 +1242,10 @@
                     <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
                 </div>
                 <div class="form-group">
+                    <label>URL Video Berbayar (Opsional) — link .mp4 langsung tanpa iklan. Dipakai kalau folder sudah dibeli; kalau kosong, tetap pakai URL di atas</label>
+                    <input type="url" id="videoPaidUrl" placeholder="https://example.com/video-berbayar.mp4">
+                </div>
+                <div class="form-group">
                     <label>Ukuran File (otomatis terisi kalau upload file, atau isi manual)</label>
                     <input type="text" id="videoSize" placeholder="198mb">
                 </div>
@@ -1424,6 +1428,10 @@
                 <div class="form-group" id="editUrlGroup">
                     <label id="editUrlLabel">URL Video</label>
                     <input type="url" id="editUrlInput" placeholder="https://videy.co/v/?id=xxx">
+                </div>
+                <div class="form-group" id="editPaidUrlGroup" style="display:none;">
+                    <label>URL Video Berbayar (Opsional) — .mp4 langsung tanpa iklan, dipakai kalau folder sudah dibeli</label>
+                    <input type="url" id="editPaidUrlInput" placeholder="https://example.com/video-berbayar.mp4">
                 </div>
                 <div class="form-group" id="editGoLinkGroup" style="display:none;">
                     <label>Link Langsung (menuju & menandai kartu ini, tidak membuka apa pun)</label>
@@ -2112,6 +2120,7 @@
         // ==========================================================
         let videoViewActive = false;
         let currentDetailVideo = null;
+        let currentVideoUnlockedByFolder = false; // true = folder sudah dibeli di HP ini
         let previewGatePassed = false;
 
         function findVideoById(id, isFolderView) {
@@ -2161,6 +2170,7 @@
             }
 
             currentDetailVideo = item;
+            currentVideoUnlockedByFolder = unlockedByPaidFolder;
 
             document.getElementById('videoGrid').style.display = 'none';
             document.getElementById('bannerCard').style.display = 'none';
@@ -2252,6 +2262,10 @@
             const item = currentDetailVideo;
             if (!item) return;
 
+            // Folder sudah dibeli & video punya URL berbayar (mp4 langsung tanpa iklan)
+            // -> pakai itu. Selain itu pakai URL biasa (alur gratis/iklan).
+            const playUrl = (currentVideoUnlockedByFolder && item.paidUrl) ? item.paidUrl : item.url;
+
             // hitung view baru & simpan, hanya saat benar-benar mulai diputar
             item.views = (item.views || 0) + 1;
             document.getElementById('detailViews').textContent = item.views.toLocaleString('id-ID');
@@ -2267,16 +2281,16 @@
             player.style.display = 'none';
             errorBox.classList.remove('visible');
             loading.style.display = 'block';
-            errorLink.href = item.url;
+            errorLink.href = playUrl;
 
-            if (!isDirectVideoUrl(item.url) || isFollowLinkUrl(item.url)) {
+            if (!isDirectVideoUrl(playUrl) || isFollowLinkUrl(playUrl)) {
                 loading.style.display = 'none';
                 poster.style.display = 'block';
-                window.open(item.url, '_blank');
+                window.open(playUrl, '_blank');
                 return;
             }
 
-            player.src = item.url;
+            player.src = playUrl;
             player.load();
 
             player.oncanplay = function() {
@@ -2288,7 +2302,7 @@
             player.onerror = function() {
                 loading.style.display = 'none';
                 player.style.display = 'none';
-                const w = window.open(item.url, '_blank');
+                const w = window.open(playUrl, '_blank');
                 if (w) {
                     poster.style.display = 'block';
                 } else {
@@ -3574,6 +3588,7 @@
             const title = document.getElementById('videoTitle').value.trim();
             const thumb = document.getElementById('videoThumb').value.trim();
             const manualUrl = convertVideyUrl(document.getElementById('videoUrl').value.trim());
+            const paidUrl = document.getElementById('videoPaidUrl').value.trim();
             const manualSize = document.getElementById('videoSize').value.trim();
             const viewsRaw = document.getElementById('videoViews').value.trim();
             const likesRaw = document.getElementById('videoLikes').value.trim();
@@ -3644,6 +3659,7 @@
             const newVideo = {
                 id: 'vid_' + Date.now(),
                 title, thumbnail: finalThumb, url: finalUrl,
+                paidUrl: paidUrl,
                 size: finalSize,
                 views: initialViews,
                 likes: initialLikes,
@@ -3839,6 +3855,7 @@
             document.getElementById('editUrlGroup').style.display = 'block';
             document.getElementById('editUrlLabel').textContent = 'URL Link Tujuan (Opsional)';
             document.getElementById('editUrlInput').value = banner.link || '';
+            document.getElementById('editPaidUrlGroup').style.display = 'none';
             document.getElementById('editDeepLinkGroup').style.display = 'none'; document.getElementById('editGoLinkGroup').style.display = 'none';
             document.getElementById('editNoPreviewGroup').style.display = 'none';
             document.getElementById('editPreviewAdRow').style.display = 'none';
@@ -3945,6 +3962,8 @@
             document.getElementById('editUrlGroup').style.display = 'block';
             document.getElementById('editUrlLabel').textContent = 'URL Video';
             document.getElementById('editUrlInput').value = video.url || '';
+            document.getElementById('editPaidUrlGroup').style.display = 'block';
+            document.getElementById('editPaidUrlInput').value = video.paidUrl || '';
             document.getElementById('editDeepLinkGroup').style.display = 'block';
             document.getElementById('editDeepLinkInput').value = window.location.origin + window.location.pathname + '?unlock=' + encodeURIComponent(video.id);
             document.getElementById('editGoLinkGroup').style.display = 'block';
@@ -3980,6 +3999,7 @@
             document.getElementById('editTitleInput').value = folder.name || '';
             document.getElementById('editThumbInput').value = folder.thumbnail || '';
             document.getElementById('editUrlGroup').style.display = 'none';
+            document.getElementById('editPaidUrlGroup').style.display = 'none';
             document.getElementById('editDeepLinkGroup').style.display = 'none'; document.getElementById('editGoLinkGroup').style.display = 'none';
             document.getElementById('editNoPreviewGroup').style.display = 'none';
             document.getElementById('editPreviewAdRow').style.display = 'none';
@@ -4076,6 +4096,7 @@
                 video.title = newTitle;
                 video.thumbnail = newThumb;
                 video.url = convertVideyUrl(newUrl);
+                video.paidUrl = document.getElementById('editPaidUrlInput').value.trim();
                 video.size = newSize;
                 video.views = newViews !== '' ? parseInt(newViews) : (video.views || 0);
                 video.likes = newLikes !== '' ? parseInt(newLikes) : (video.likes || 0);
