@@ -2180,7 +2180,8 @@
 
             if (!isDirectVideoUrl(item.url)) {
                 loading.style.display = 'none';
-                showExternalPlayer(item.url);
+                poster.style.display = 'block';
+                window.open(item.url, '_blank');
                 return;
             }
 
