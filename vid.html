@@ -1206,7 +1206,23 @@
             <button class="admin-tab" data-tab="folder" onclick="switchTab('folder')"><i class="fas fa-folder"></i> Tambah Folder</button>
             <button class="admin-tab" data-tab="photo" onclick="switchTab('photo')"><i class="fas fa-image"></i> Tambah Foto</button>
             <button class="admin-tab" data-tab="banner" onclick="switchTab('banner')"><i class="fas fa-image"></i> Tambah Banner</button>
+            <button class="admin-tab" data-tab="sync" onclick="switchTab('sync')"><i class="fas fa-sync"></i> Sync</button>
             <button class="admin-tab" data-tab="manage" onclick="switchTab('manage')"><i class="fas fa-list"></i> Kelola</button>
+        </div>
+
+        <!-- Form Sync Judul Folder -->
+        <div class="admin-form" id="formSync">
+            <h3 style="color: #f59b00; margin-bottom: 15px;">Sinkronkan Judul Video di Folder</h3>
+            <p style="color:#888; font-size:13px; margin-bottom:15px;">
+                <i class="fas fa-info-circle"></i> Judul semua video di dalam folder yang dipilih akan diganti menjadi nomor urut (1, 2, 3, dst) sesuai urutan di folder.
+            </p>
+            <div class="form-group">
+                <label>Pilih Folder yang Disinkronkan</label>
+                <select id="syncFolder"></select>
+            </div>
+            <button type="button" class="btn-submit" id="btnSyncFolder" onclick="syncFolderTitles()">
+                <i class="fas fa-sync"></i> Sinkronkan Judul
+            </button>
         </div>
 
         <!-- Form Tambah Video -->
@@ -1214,8 +1230,8 @@
             <h3 style="color: #f59b00; margin-bottom: 15px;">Tambah Video Baru</h3>
             <form id="addVideoForm">
                 <div class="form-group">
-                    <label>Judul Video</label>
-                    <input type="text" id="videoTitle" placeholder="Masukkan judul video" required>
+                    <label>Judul Video (kosongkan untuk otomatis nomor urut)</label>
+                    <input type="text" id="videoTitle" placeholder="Kosong = otomatis nomor urut folder">
                 </div>
                 <div class="form-group">
                     <label>URL Thumbnail (Opsional)</label>
@@ -3486,6 +3502,18 @@
                 select.innerHTML += `<option value="${f.id}">${escapeHtml(f.name)}</option>`;
             });
 
+            // Pilihan folder untuk sync judul
+            const syncSelect = document.getElementById('syncFolder');
+            if (syncSelect) {
+                const prevSync = syncSelect.value;
+                if (data.folders.length === 0) {
+                    syncSelect.innerHTML = '<option value="">Belum ada folder</option>';
+                } else {
+                    syncSelect.innerHTML = data.folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)} (${f.videos.length} video)</option>`).join('');
+                    if (data.folders.some(f => String(f.id) === String(prevSync))) syncSelect.value = prevSync;
+                }
+            }
+
             // Pilihan folder untuk foto: TANPA opsi Root (foto hanya boleh di dalam folder)
             const photoSelect = document.getElementById('photoFolder');
             if (photoSelect) {
@@ -3520,6 +3548,32 @@
             return Math.floor(sec / 60) + '.' + String(sec % 60).padStart(2, '0');
         }
 
+        // Sinkronkan judul semua video di folder terpilih menjadi nomor urut
+        async function syncFolderTitles() {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            const folderId = document.getElementById('syncFolder').value;
+            const folder = data.folders.find(f => String(f.id) === String(folderId));
+            if (!folder) { showNotification('❌ Pilih folder dulu!', 'error'); return; }
+            if (!folder.videos.length) { showNotification('ℹ️ Folder ini belum punya video.', 'error'); return; }
+            if (!confirm(`Ubah judul ${folder.videos.length} video di folder "${folder.name}" menjadi nomor urut 1 - ${folder.videos.length}?`)) return;
+
+            const btn = document.getElementById('btnSyncFolder');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyinkronkan...';
+            folder.videos.forEach((v, i) => { v.title = String(i + 1); });
+            const ok = await saveToCloud();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync"></i> Sinkronkan Judul';
+            if (!ok) return;
+            showNotification(`✅ ${folder.videos.length} judul di folder "${folder.name}" disinkronkan!`, 'success');
+            updateFolderSelect();
+            if (currentFolderId !== null && String(currentFolderId) === String(folder.id) && !videoViewActive) {
+                renderItems(folder.videos, true);
+            } else if (currentFolderId === null && !videoViewActive) {
+                renderCurrentView();
+            }
+        }
+
         function toggleAddNoPreviewFields() {
             const noPreview = document.getElementById('videoNoPreview').checked;
             const row = document.getElementById('videoPreviewAdRow');
@@ -3550,7 +3604,7 @@
         document.getElementById('addVideoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
-            const title = document.getElementById('videoTitle').value.trim();
+            let title = document.getElementById('videoTitle').value.trim();
             const thumb = document.getElementById('videoThumb').value.trim();
             const manualUrl = convertVideyUrl(document.getElementById('videoUrl').value.trim());
             const paidUrl = document.getElementById('videoPaidUrl').value.trim();
@@ -3563,7 +3617,11 @@
             const folderId = document.getElementById('videoFolder').value;
             const file = null; // upload file video sudah dihapus dari form
 
-            if (!title) { showNotification('Judul harus diisi!', 'error'); return; }
+            // Judul kosong -> otomatis nomor urut sesuai jumlah video di folder (atau root)
+            if (!title) {
+                const targetFolder = folderId ? data.folders.find(f => f.id === folderId) : null;
+                title = String((targetFolder ? targetFolder.videos.length : data.rootVideos.length) + 1);
+            }
             if (!file && !manualUrl) { showNotification('URL video harus diisi!', 'error'); return; }
 
             const btn = document.getElementById('btnAddVideo');
