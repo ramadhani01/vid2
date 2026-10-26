@@ -1250,10 +1250,10 @@
                     <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
                 </div>
                 <div class="form-group">
-                    <label>Upload Video ke Storage (otomatis isi URL Video, Thumbnail & Ukuran)</label>
+                    <label>Upload Video ke Storage (otomatis isi URL Video, Thumbnail & Ukuran). Pilih banyak file sekaligus = langsung ditambahkan semua ke folder yang dipilih di bawah</label>
                     <label style="display:inline-flex; align-items:center; gap:8px; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:10px 16px; border-radius:8px; cursor:pointer; font-size:13px;">
                         <i class="fas fa-upload"></i> Pilih & Upload Video
-                        <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="handleVideoFileUpload(this)">
+                        <input type="file" id="videoFileInput" accept="video/*" multiple style="display:none" onchange="handleVideoFileUpload(this)">
                     </label>
                     <div id="videoUploadBarWrap" style="display:none; margin-top:8px; height:6px; background:#14151A; border-radius:4px; overflow:hidden;">
                         <div id="videoUploadBar" style="height:100%; width:0%; background:#f59b00; transition:width .2s;"></div>
@@ -2102,6 +2102,7 @@
         }
 
         async function handleVideoFileUpload(input) {
+            if (input.files && input.files.length > 1) return handleMultiVideoUpload(input);
             const file = input.files && input.files[0];
             if (!file) return;
             const st = document.getElementById('videoUploadStatus');
@@ -2157,6 +2158,122 @@
             } finally {
                 submitBtn.disabled = false;
                 input.value = '';
+            }
+        }
+
+        // Upload banyak video sekaligus: satu per satu (stabil di HP), tiap video langsung
+        // ditambahkan ke folder yang dipilih di form, pakai pengaturan form (preview, iklan/paywall,
+        // view/like). Judul otomatis nomor urut. Kalau satu gagal, lanjut ke berikutnya.
+        async function handleMultiVideoUpload(input) {
+            const files = Array.from(input.files || []);
+            input.value = '';
+            if (!files.length) return;
+            const st = document.getElementById('videoUploadStatus');
+            const barWrap = document.getElementById('videoUploadBarWrap');
+            const bar = document.getElementById('videoUploadBar');
+            const submitBtn = document.getElementById('btnAddVideo');
+            const setSt = (text, color) => { st.style.display = 'inline'; st.style.color = color || '#888'; st.textContent = text; };
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+
+            const folderId = document.getElementById('videoFolder').value;
+            const noPreview = document.getElementById('videoNoPreview').checked;
+            const previewSeconds = parsePreviewTime(document.getElementById('videoPreviewSeconds').value.trim(), 5);
+            const viewsRaw = document.getElementById('videoViews').value.trim();
+            const likesRaw = document.getElementById('videoLikes').value.trim();
+            const manualAdLink = document.getElementById('videoAdLink').value.trim();
+            const paywallOn = !noPreview && !!document.getElementById('videoPaywall').checked;
+            const autoAd = !noPreview && (paywallOn || !!document.getElementById('videoAutoAd').checked);
+            let paywallPrice = 0;
+            if (paywallOn) {
+                const sel = document.getElementById('videoPaywallPrice').value;
+                paywallPrice = sel === 'custom'
+                    ? parseInt(String(document.getElementById('videoPaywallCustom').value).replace(/[^0-9]/g, ''), 10)
+                    : parseInt(sel, 10);
+                if (!paywallPrice || paywallPrice < 500 || paywallPrice > 5000000) {
+                    showNotification('❌ Nominal paywall harus Rp 500 – Rp 5.000.000', 'error');
+                    return;
+                }
+            }
+
+            submitBtn.disabled = true;
+            barWrap.style.display = 'block';
+            bar.style.width = '0%';
+            let okCount = 0;
+            const failed = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const tag = '(' + (i + 1) + '/' + files.length + ') ';
+                const overall = pct => { bar.style.width = Math.round(((i + pct / 100) / files.length) * 100) + '%'; };
+                try {
+                    setSt(tag + 'Menyiapkan ' + file.name + '…');
+                    const p = await presignUpload({ kind: 'video', filename: file.name, contentType: file.type, size: file.size });
+                    await putToStorage(p.uploadUrl, file, p.contentType, pct => {
+                        overall(pct * 0.9);
+                        setSt(tag + 'Mengupload ' + pct + '%…');
+                    });
+
+                    setSt(tag + 'Membuat thumbnail…');
+                    let thumbUrl = '';
+                    const blobUrl = URL.createObjectURL(file);
+                    try {
+                        const cap = await captureVideoFrameThumbnail(blobUrl);
+                        if (cap.url) {
+                            const raw = await (await fetch(cap.url)).blob();
+                            const small = await resizeImageToJpegBlob(raw, 640);
+                            thumbUrl = await uploadImageToImgbb(small, null, 640);
+                        }
+                    } catch (e) { console.warn('Thumbnail gagal:', e); }
+                    finally { URL.revokeObjectURL(blobUrl); }
+
+                    const targetFolder = folderId ? data.folders.find(f => f.id === folderId) : null;
+                    const title = String((targetFolder ? targetFolder.videos.length : data.rootVideos.length) + 1);
+                    const newVideoId = 'vid_' + Date.now() + '_' + i;
+                    const isPaywall = paywallOn;
+                    const paywallKey = isPaywall
+                        ? Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('')
+                        : '';
+
+                    let adLink = manualAdLink;
+                    if (autoAd && !adLink) {
+                        setSt(tag + 'Membuat link Move2link…');
+                        try {
+                            const unlockUrl = window.location.origin + window.location.pathname + '?unlock=' + encodeURIComponent(newVideoId) + (paywallKey ? '&k=' + paywallKey : '');
+                            adLink = await shortenViaMove2link(unlockUrl, title, paywallPrice);
+                        } catch (e) { console.warn('Auto ad link gagal:', e); showNotification('⚠️ Video ' + (i + 1) + ': link Move2link gagal (' + e.message + '). Diisi manual lewat Edit.', 'error'); }
+                    }
+
+                    const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
+                    const initialLikes = likesRaw !== '' ? parseInt(likesRaw) : Math.floor(initialViews * (0.6 + Math.random() * 0.3));
+                    const newVideo = {
+                        id: newVideoId, title, thumbnail: thumbUrl, url: p.publicUrl, paidUrl: '',
+                        size: formatBytes(file.size), views: initialViews, likes: initialLikes,
+                        previewSeconds, adLink, noPreview,
+                        paywall: isPaywall, paywallPrice: isPaywall ? paywallPrice : 0, paywallKey,
+                        date: new Date().toISOString()
+                    };
+                    if (targetFolder) targetFolder.videos.push(newVideo); else data.rootVideos.push(newVideo);
+                    setSt(tag + 'Menyimpan…');
+                    await saveToCloud();
+                    okCount++;
+                    overall(100);
+                } catch (err) {
+                    console.warn('Upload gagal:', file.name, err);
+                    failed.push(file.name + ' (' + err.message + ')');
+                }
+            }
+
+            renderCurrentView();
+            updateFolderSelect();
+            updateBannerDisplay();
+            submitBtn.disabled = false;
+            bar.style.width = '100%';
+            if (failed.length) {
+                setSt('⚠️ ' + okCount + ' berhasil, ' + failed.length + ' gagal: ' + failed.join('; '), '#f59b00');
+                showNotification('⚠️ ' + okCount + ' video ditambahkan, ' + failed.length + ' gagal.', 'error');
+            } else {
+                setSt('✅ ' + okCount + ' video berhasil ditambahkan.', '#22c55e');
+                showNotification('✅ ' + okCount + ' video berhasil ditambahkan!', 'success');
             }
         }
 
