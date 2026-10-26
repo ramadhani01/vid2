@@ -2064,7 +2064,9 @@
                 xhr.onload = () => (xhr.status >= 200 && xhr.status < 300)
                     ? resolve()
                     : reject(new Error('Upload ditolak storage (HTTP ' + xhr.status + '). Cek pengaturan CORS bucket.'));
-                xhr.onerror = () => reject(new Error('Upload gagal. Cek koneksi / CORS bucket.'));
+                let hostInfo = '';
+                try { hostInfo = ' ke ' + new URL(url).host; } catch (e) {}
+                xhr.onerror = () => reject(new Error('Upload gagal' + hostInfo + '. Cek CORS bucket / region endpoint.'));
                 xhr.ontimeout = () => reject(new Error('Upload timeout.'));
                 xhr.send(blob);
             });
