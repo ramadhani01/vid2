@@ -1249,6 +1249,22 @@
                     <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
                 </div>
                 <div class="form-group">
+                    <label>Upload Video ke Storage (otomatis isi URL Video, Thumbnail & Ukuran)</label>
+                    <label style="display:inline-flex; align-items:center; gap:8px; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:10px 16px; border-radius:8px; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-upload"></i> Pilih & Upload Video
+                        <input type="file" id="videoFileInput" accept="video/*" style="display:none" onchange="handleVideoFileUpload(this)">
+                    </label>
+                    <div id="videoUploadBarWrap" style="display:none; margin-top:8px; height:6px; background:#14151A; border-radius:4px; overflow:hidden;">
+                        <div id="videoUploadBar" style="height:100%; width:0%; background:#f59b00; transition:width .2s;"></div>
+                    </div>
+                    <span id="videoUploadStatus" style="display:none; font-size:12px; margin-top:6px;"></span>
+                </div>
+                <div class="form-group">
+                    <label>Key hasil upload Fashstream (opsional, otomatis isi thumbnail)</label>
+                    <input type="text" id="fashstreamKey" placeholder="videos/2026/10/xxxx.mp4" oninput="applyFashstreamKey()">
+                    <span id="fashstreamKeyStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
+                </div>
+                <div class="form-group">
                     <label>URL Video Berbayar</label>
                     <input type="url" id="videoPaidUrl" placeholder="https://example.com/video-berbayar.mp4">
                 </div>
@@ -1967,6 +1983,149 @@
                 if (await probeImageUrl(candidate)) return { url: candidate, reason: 'ok' };
             }
             return { url: '', reason: 'thumb_id ditemukan (' + thumbId + ') tapi domain gambarnya belum cocok' };
+        }
+
+        // ==========================================================
+        // FASHSTREAM: tempel "key" hasil upload (dari response /complete,
+        // contoh videos/2026/10/xxxx.mp4) -> thumbnail terisi otomatis.
+        // Pola thumbnail sama dengan yang dipakai halaman remote_upload:
+        //   videos/2026/10/xxxx.mp4  ->  thumbs/2026/10/xxxx.jpg
+        // FASHSTREAM_VIDEO_TEMPLATE: isi kalau sudah tahu pola link video
+        // yang bisa diputar, pakai {key} / nama file. Contoh:
+        //   'https://domain-video-kamu/{file}'   ({file} = xxxx.mp4)
+        // Kosongkan kalau belum tahu (URL Video diisi manual).
+        // ==========================================================
+        const FASHSTREAM_THUMB_BASE = 'https://thumbs.alflix.cv/';
+        const FASHSTREAM_VIDEO_TEMPLATE = '';
+
+        function fashstreamThumbFromKey(key) {
+            key = String(key || '').trim().replace(/^\/+/, '');
+            if (!/\.[a-z0-9]+$/i.test(key)) return '';
+            const t = key.startsWith('videos/') ? key.replace(/^videos\//, 'thumbs/') : 'thumbs/' + key;
+            return FASHSTREAM_THUMB_BASE + t.replace(/\.[a-z0-9]+$/i, '.jpg');
+        }
+
+        function applyFashstreamKey() {
+            const keyEl = document.getElementById('fashstreamKey');
+            const st = document.getElementById('fashstreamKeyStatus');
+            const key = keyEl.value.trim();
+            if (!key) { st.style.display = 'none'; return; }
+            const thumb = fashstreamThumbFromKey(key);
+            st.style.display = 'inline';
+            if (!thumb) { st.style.color = '#ef4444'; st.textContent = '❌ Key tidak valid (harus berakhiran .mp4 dll)'; return; }
+            document.getElementById('videoThumb').value = thumb;
+            if (FASHSTREAM_VIDEO_TEMPLATE) {
+                const file = key.split('/').pop();
+                document.getElementById('videoUrl').value = FASHSTREAM_VIDEO_TEMPLATE.replace('{key}', key).replace('{file}', file);
+            }
+            st.style.color = '#22c55e';
+            st.textContent = '✅ Thumbnail terisi' + (FASHSTREAM_VIDEO_TEMPLATE ? ' & URL video terisi' : '. URL video isi manual.');
+        }
+
+        // ==========================================================
+        // UPLOAD VIDEO KE R2 (mirip alur fashstream):
+        // 1) minta URL upload ke /api/presign  2) PUT file ke URL itu
+        // 3) ambil 1 frame video jadi thumbnail, upload juga  4) isi form
+        // ==========================================================
+        function getUploadAdminKey() {
+            let k = localStorage.getItem('vidoy_upload_key') || '';
+            if (!k) {
+                k = (prompt('Masukkan password upload (UPLOAD_ADMIN_KEY dari Vercel):') || '').trim();
+                if (!k) throw new Error('Password upload dibatalkan.');
+                localStorage.setItem('vidoy_upload_key', k);
+            }
+            return k;
+        }
+
+        async function presignUpload(payload) {
+            const res = await fetch('/api/presign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-admin-key': getUploadAdminKey() },
+                body: JSON.stringify(payload)
+            });
+            const j = await res.json().catch(() => null);
+            if (res.status === 401) {
+                localStorage.removeItem('vidoy_upload_key');
+                throw new Error('Password upload salah. Coba upload lagi untuk memasukkan ulang.');
+            }
+            if (!res.ok || !j || !j.ok) throw new Error((j && j.error) || ('Gagal minta URL upload (' + res.status + ')'));
+            return j;
+        }
+
+        function putToStorage(url, blob, contentType, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', url, true);
+                xhr.setRequestHeader('Content-Type', contentType);
+                xhr.timeout = 30 * 60 * 1000;
+                xhr.upload.onprogress = e => {
+                    if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+                };
+                xhr.onload = () => (xhr.status >= 200 && xhr.status < 300)
+                    ? resolve()
+                    : reject(new Error('Upload ditolak storage (HTTP ' + xhr.status + '). Cek pengaturan CORS bucket.'));
+                xhr.onerror = () => reject(new Error('Upload gagal. Cek koneksi / CORS bucket.'));
+                xhr.ontimeout = () => reject(new Error('Upload timeout.'));
+                xhr.send(blob);
+            });
+        }
+
+        async function handleVideoFileUpload(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const st = document.getElementById('videoUploadStatus');
+            const barWrap = document.getElementById('videoUploadBarWrap');
+            const bar = document.getElementById('videoUploadBar');
+            const submitBtn = document.getElementById('btnAddVideo');
+            const setSt = (text, color) => { st.style.display = 'inline'; st.style.color = color || '#888'; st.textContent = text; };
+
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); input.value = ''; return; }
+            submitBtn.disabled = true;
+            barWrap.style.display = 'block';
+            bar.style.width = '0%';
+
+            try {
+                setSt('Menyiapkan upload…');
+                const p = await presignUpload({ kind: 'video', filename: file.name, contentType: file.type, size: file.size });
+
+                setSt('Mengupload video 0%…');
+                await putToStorage(p.uploadUrl, file, p.contentType, pct => {
+                    bar.style.width = pct + '%';
+                    setSt('Mengupload video ' + pct + '%…');
+                });
+                document.getElementById('videoUrl').value = p.publicUrl;
+                document.getElementById('videoSize').value = formatBytes(file.size);
+
+                // Thumbnail: 1 frame dari file lokal (tidak kena CORS), diperkecil lalu diupload
+                setSt('Membuat thumbnail…');
+                const blobUrl = URL.createObjectURL(file);
+                let thumbOk = false;
+                try {
+                    const cap = await captureVideoFrameThumbnail(blobUrl);
+                    if (cap.url) {
+                        const raw = await (await fetch(cap.url)).blob();
+                        const small = await resizeImageToJpegBlob(raw, 640);
+                        const tp = await presignUpload({ kind: 'thumb', size: small.size });
+                        await putToStorage(tp.uploadUrl, small, tp.contentType);
+                        document.getElementById('videoThumb').value = tp.publicUrl;
+                        thumbOk = true;
+                    }
+                } catch (e) {
+                    console.warn('Thumbnail gagal:', e);
+                } finally {
+                    URL.revokeObjectURL(blobUrl);
+                }
+
+                bar.style.width = '100%';
+                setSt(thumbOk ? '✅ Selesai. URL video & thumbnail terisi.' : '✅ Video terupload, tapi thumbnail gagal dibuat (isi manual).', thumbOk ? '#22c55e' : '#f59b00');
+                showNotification(thumbOk ? '✅ Video & thumbnail berhasil diupload!' : '⚠️ Video terupload, thumbnail gagal.', thumbOk ? 'success' : 'error');
+            } catch (err) {
+                setSt('❌ ' + err.message, '#ef4444');
+                showNotification('❌ ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                input.value = '';
+            }
         }
 
         function formatBytes(bytes) {
