@@ -71,7 +71,12 @@ module.exports = async (req, res) => {
       { expiresIn }
     );
     const base = String(process.env.R2_PUBLIC_BASE || '').replace(/\/+$/, '');
-    return res.status(200).json({ ok: true, uploadUrl, contentType, key, publicUrl: `${base}/${key}`, expiresIn });
+    // Kalau R2_PUBLIC_BASE diisi -> bucket publik. Kalau kosong -> bucket private,
+    // link lewat /api/file (redirect ke link sementara).
+    const publicUrl = base
+      ? `${base}/${key}`
+      : `https://${req.headers.host}/api/file?k=${encodeURIComponent(key)}`;
+    return res.status(200).json({ ok: true, uploadUrl, contentType, key, publicUrl, expiresIn });
   } catch (e) {
     console.error('presign error', e);
     return res.status(500).json({ ok: false, error: 'Gagal membuat URL upload' });
