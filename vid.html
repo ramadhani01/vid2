@@ -2107,9 +2107,10 @@
                     if (cap.url) {
                         const raw = await (await fetch(cap.url)).blob();
                         const small = await resizeImageToJpegBlob(raw, 640);
-                        const tp = await presignUpload({ kind: 'thumb', size: small.size });
-                        await putToStorage(tp.uploadUrl, small, tp.contentType);
-                        document.getElementById('videoThumb').value = tp.publicUrl;
+                        // Thumbnail diupload lewat pilihan host gambar di panel admin (ImgBB dll),
+                        // supaya tidak membebani kuota storage video.
+                        const thumbUrl = await uploadImageToImgbb(small, null, 640);
+                        document.getElementById('videoThumb').value = thumbUrl;
                         thumbOk = true;
                     }
                 } catch (e) {
