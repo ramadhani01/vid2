@@ -1196,6 +1196,7 @@
         <div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:13px;color:#aaa;">
             <label for="imgHostSelect" style="white-space:nowrap;">Upload gambar ke:</label>
             <select id="imgHostSelect" onchange="setImageHost(this.value)" style="flex:1;padding:8px 10px;border-radius:8px;background:#14151A;color:#fff;border:1px solid #2a2a2a;">
+                <option value="b2">Backblaze B2 (satu storage dgn video)</option>
                 <option value="imgbb">ImgBB</option>
                 <option value="github">GitHub + jsDelivr</option>
                 <option value="supabase">Supabase Storage</option>
@@ -1781,18 +1782,27 @@
             });
         }
 
+        // Thumbnail/gambar ke storage yang sama dengan video (Backblaze B2) lewat /api/presign.
+        async function uploadImageToB2(file, onProgress, maxW) {
+            const blob = await resizeImageToJpegBlob(file, maxW || 640);
+            const p = await presignUpload({ kind: 'thumb', size: blob.size });
+            await putToStorage(p.uploadUrl, blob, p.contentType, onProgress);
+            return p.publicUrl;
+        }
+
         // Pilihan tujuan upload gambar (disimpan per HP admin). Nama fungsi dipertahankan
         // supaya semua tombol Upload yang lama tetap memanggilnya.
         document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('imgHostSelect'); if (el) el.value = getImageHost(); });
         function getImageHost() {
             const saved = localStorage.getItem('vidoy_img_host');
-            if (saved === 'imgbb' || saved === 'github' || saved === 'supabase') return saved;
-            return 'imgbb';
+            if (saved === 'b2' || saved === 'imgbb' || saved === 'github' || saved === 'supabase') return saved;
+            return 'b2';
         }
         function setImageHost(v) { localStorage.setItem('vidoy_img_host', v); }
 
         function uploadImageToImgbb(file, onProgress, maxW) {
             const host = getImageHost();
+            if (host === 'b2') return uploadImageToB2(file, onProgress, maxW);
             if (host === 'github') return uploadImageToGithub(file, onProgress, maxW);
             if (host === 'supabase') return uploadImageToSupabase(file, onProgress, maxW);
             return uploadImageToImgbbRaw(file, onProgress);
