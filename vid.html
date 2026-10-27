@@ -1971,6 +1971,14 @@
             return m ? m[1] : '';
         }
 
+        // Link video langsung: https://stream.alflix.cv/videos/2026/10/<uuid>.mp4
+        // Thumbnail diturunkan dari pola path (videos/... -> thumbs/...jpg),
+        // tanpa API & tanpa CORS. Lihat fashstreamThumbFromKey().
+        function extractAlflixKey(url) {
+            const m = String(url || '').trim().match(/^https?:\/\/stream\.alflix\.cv\/(videos\/[^?#]+\.[a-z0-9]+)(?:[?#].*)?$/i);
+            return m ? m[1] : '';
+        }
+
         function probeImageUrl(url, timeoutMs = 8000) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -4042,7 +4050,10 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
             let finalThumb = thumb;
-            if (!finalThumb && finalUrl && extractVdoseToken(finalUrl)) {
+            const alflixKey = extractAlflixKey(finalUrl);
+            if (!finalThumb && alflixKey) {
+                finalThumb = fashstreamThumbFromKey(alflixKey);
+            } else if (!finalThumb && finalUrl && extractVdoseToken(finalUrl)) {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengambil thumbnail dari vdose...';
                 const vd = await fetchVdoseThumbnail(finalUrl);
                 finalThumb = vd.url;
