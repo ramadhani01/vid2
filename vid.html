@@ -1226,6 +1226,19 @@
             <button type="button" class="btn-submit" id="btnSyncFolder" onclick="syncFolderTitles()">
                 <i class="fas fa-sync"></i> Sinkronkan Judul
             </button>
+
+            <hr style="border:none; border-top:1px solid #2a2a2a; margin:24px 0;">
+            <h3 style="color: #ef4444; margin-bottom: 15px;">Hapus Semua Video di Folder</h3>
+            <p style="color:#888; font-size:13px; margin-bottom:15px;">
+                <i class="fas fa-exclamation-triangle"></i> Semua video di dalam folder yang dipilih akan dihapus dari daftar. Foto dan folder-nya tidak ikut terhapus. Tidak bisa dibatalkan.
+            </p>
+            <div class="form-group">
+                <label>Pilih Folder yang Dikosongkan</label>
+                <select id="clearFolder"></select>
+            </div>
+            <button type="button" class="btn-submit" id="btnClearFolder" onclick="clearFolderVideos()" style="background:#dc2626; color:#fff;">
+                <i class="fas fa-trash"></i> Hapus Semua Video
+            </button>
         </div>
 
         <!-- Form Tambah Video -->
@@ -3976,6 +3989,18 @@
                 }
             }
 
+            // Pilihan folder untuk hapus semua video
+            const clearSelect = document.getElementById('clearFolder');
+            if (clearSelect) {
+                const prevClear = clearSelect.value;
+                if (data.folders.length === 0) {
+                    clearSelect.innerHTML = '<option value="">Belum ada folder</option>';
+                } else {
+                    clearSelect.innerHTML = data.folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)} (${f.videos.length} video)</option>`).join('');
+                    if (data.folders.some(f => String(f.id) === String(prevClear))) clearSelect.value = prevClear;
+                }
+            }
+
             // Pilihan folder untuk foto: TANPA opsi Root (foto hanya boleh di dalam folder)
             const photoSelect = document.getElementById('photoFolder');
             if (photoSelect) {
@@ -4008,6 +4033,40 @@
         function formatPreviewTime(sec) {
             sec = Math.max(0, Math.round(Number(sec) || 0));
             return Math.floor(sec / 60) + '.' + String(sec % 60).padStart(2, '0');
+        }
+
+        // Hapus SEMUA video di dalam folder terpilih (foto & folder tetap)
+        async function clearFolderVideos() {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            const folderId = document.getElementById('clearFolder').value;
+            const folder = data.folders.find(f => String(f.id) === String(folderId));
+            if (!folder) { showNotification('❌ Pilih folder dulu!', 'error'); return; }
+            const count = folder.videos.length;
+            if (!count) { showNotification('ℹ️ Folder ini sudah kosong.', 'error'); return; }
+            if (!confirm(`Hapus SEMUA ${count} video di folder "${folder.name}"? Tidak bisa dibatalkan.`)) return;
+
+            const btn = document.getElementById('btnClearFolder');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+            const backup = folder.videos;
+            folder.videos = [];
+            let ok = false;
+            try { ok = await saveToCloud(); } catch (e) { ok = false; }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Hapus Semua Video';
+            if (!ok) {
+                folder.videos = backup;
+                showNotification('❌ Gagal menyimpan, video tidak jadi dihapus.', 'error');
+                return;
+            }
+            showNotification(`✅ ${count} video di folder "${folder.name}" dihapus!`, 'success');
+            updateFolderSelect();
+            updateBannerDisplay();
+            if (currentFolderId !== null && String(currentFolderId) === String(folder.id) && !videoViewActive) {
+                renderItems(folder.videos, true);
+            } else if (currentFolderId === null && !videoViewActive) {
+                renderCurrentView();
+            }
         }
 
         // Sinkronkan judul semua video di folder terpilih menjadi nomor urut
