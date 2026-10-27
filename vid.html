@@ -2200,6 +2200,7 @@
             bar.style.width = '0%';
             let okCount = 0;
             const failed = [];
+            const noThumb = [];
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -2225,6 +2226,7 @@
                         }
                     } catch (e) { console.warn('Thumbnail gagal:', e); }
                     finally { URL.revokeObjectURL(blobUrl); }
+                    if (!thumbUrl) noThumb.push(file.name);
 
                     const targetFolder = folderId ? data.folders.find(f => f.id === folderId) : null;
                     const title = String((targetFolder ? targetFolder.videos.length : data.rootVideos.length) + 1);
@@ -2268,6 +2270,11 @@
             updateBannerDisplay();
             submitBtn.disabled = false;
             bar.style.width = '100%';
+            if (noThumb.length) {
+                const msg = '⚠️ ' + noThumb.length + ' video tanpa thumbnail (kemungkinan codec tidak didukung browser, mis. HEVC/H.265, sehingga juga tidak bisa diputar): ' + noThumb.join(', ');
+                showNotification(msg, 'error');
+                console.warn(msg);
+            }
             if (failed.length) {
                 setSt('⚠️ ' + okCount + ' berhasil, ' + failed.length + ' gagal: ' + failed.join('; '), '#f59b00');
                 showNotification('⚠️ ' + okCount + ' video ditambahkan, ' + failed.length + ' gagal.', 'error');
