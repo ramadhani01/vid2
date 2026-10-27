@@ -1265,8 +1265,8 @@
                     <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
                 </div>
                 <div class="form-group">
-                    <label>Tambah Banyak URL Sekaligus (satu link per baris). Thumbnail otomatis, judul otomatis nomor urut. Folder, preview, view/like, iklan & paywall di bawah berlaku untuk semua link</label>
-                    <textarea id="batchUrls" rows="5" placeholder="https://stream.alflix.cv/videos/2026/10/xxxx.mp4&#10;https://stream.alflix.cv/videos/2026/10/yyyy.mp4"></textarea>
+                    <label>Tambah Banyak URL Sekaligus (satu link per baris). Link slicndrive otomatis diganti ke link download stream.alflix.cv. Thumbnail & judul otomatis. Folder, preview, view/like, iklan & paywall di bawah berlaku untuk semua link</label>
+                    <textarea id="batchUrls" rows="5" placeholder="https://cdn2.slicndrive.com/xxxx.mp4&#10;https://cdn2.slicndrive.com/yyyy.mp4"></textarea>
                     <button type="button" id="btnBatchUrls" onclick="handleBatchUrls()" style="margin-top:8px; display:inline-flex; align-items:center; gap:8px; background:#1C1F26; border:1px solid #f59b00; color:#f59b00; padding:10px 16px; border-radius:8px; cursor:pointer; font-size:13px;">
                         <i class="fas fa-layer-group"></i> Tambahkan Semua URL
                     </button>
@@ -2015,6 +2015,63 @@
             });
         }
 
+        // ==========================================================
+        // LINK ADS slicndrive -> LINK DOWNLOAD stream.alflix.cv
+        // https://cdn2.slicndrive.com/<token>.mp4  --(API vdose)-->
+        // https://stream.alflix.cv/videos/YYYY/MM/<uuid>.mp4
+        // ==========================================================
+        const STREAM_VIDEO_BASE = 'https://stream.alflix.cv/';
+
+        async function fetchVdoseInfo(token) {
+            const enc = encodeURIComponent(token);
+            const endpoints = ['/api/thumb?token=' + enc, VDOSE_API + enc];
+            let lastErr = '';
+            for (const endpoint of endpoints) {
+                try {
+                    const res = await fetch(endpoint, { cache: 'no-store' });
+                    if (!res.ok) { lastErr = endpoint + ' membalas ' + res.status; continue; }
+                    const ct = res.headers.get('content-type') || '';
+                    if (ct.indexOf('json') === -1) { lastErr = endpoint + ' tidak membalas JSON'; continue; }
+                    return { info: await res.json(), reason: 'ok' };
+                } catch (e) {
+                    lastErr = endpoint + ' gagal (' + e.message + ')';
+                }
+            }
+            return { info: null, reason: 'API tidak bisa diakses: ' + lastErr };
+        }
+
+        async function resolveSlicnToStream(url) {
+            const token = extractVdoseToken(url);
+            if (!token) return { url: '', thumb: '', reason: 'bukan link slicndrive' };
+            // 1) Lewat server Vercel (/api/resolve): tanpa CORS, tanpa buka link manual
+            let srvErr = '';
+            try {
+                const rr = await fetch('/api/resolve?u=' + encodeURIComponent(url), { cache: 'no-store' });
+                const ct = rr.headers.get('content-type') || '';
+                if (ct.indexOf('json') !== -1) {
+                    const j = await rr.json();
+                    if (j && j.ok && j.url) return { url: j.url, thumb: j.thumb || fashstreamThumbFromKey(j.url.replace(/^https?:\/\/[^\/]+\//, '')), reason: 'ok' };
+                    srvErr = '/api/resolve: ' + ((j && j.error) || rr.status);
+                } else {
+                    srvErr = '/api/resolve belum dipasang (' + rr.status + ')';
+                }
+            } catch (e) { srvErr = '/api/resolve gagal (' + e.message + ')'; }
+            // 2) Cadangan: panggil API langsung dari browser
+            const r = await fetchVdoseInfo(token);
+            if (!r.info) return { url: '', thumb: '', reason: srvErr + ' | ' + r.reason };
+            let videoId = r.info.video_id ? String(r.info.video_id) : '';
+            const thumbId = r.info.thumb_id ? String(r.info.thumb_id) : '';
+            // Cadangan: kalau perantara hanya mengirim thumb_id, turunkan path video-nya
+            if (!videoId && /^thumbs\//.test(thumbId)) videoId = thumbId.replace(/^thumbs\//, 'videos/').replace(/\.[a-z0-9]+$/i, '.mp4');
+            if (!videoId) return { url: '', thumb: '', reason: 'API tidak mengirim video_id' };
+            const streamUrl = /^https?:\/\//i.test(videoId) ? videoId : STREAM_VIDEO_BASE + videoId.replace(/^\/+/, '');
+            let thumb = '';
+            if (/^https?:\/\//i.test(thumbId)) thumb = thumbId;
+            else if (thumbId) thumb = FASHSTREAM_THUMB_BASE + thumbId.replace(/^\/+/, '');
+            else thumb = fashstreamThumbFromKey(videoId);
+            return { url: streamUrl, thumb, reason: 'ok' };
+        }
+
         async function fetchVdoseThumbnail(videoUrl) {
             const token = extractVdoseToken(videoUrl);
             if (!token) return { url: '', reason: 'bukan link slicndrive' };
@@ -2324,15 +2381,17 @@
         //   stream.alflix.cv -> dari pola path | slicndrive -> API vdose
         //   lainnya -> coba ambil frame video (bisa gagal karena CORS)
         // ==========================================================
-        async function resolveThumbForUrl(url) {
-            const ak = extractAlflixKey(url);
-            if (ak) return { thumb: fashstreamThumbFromKey(ak), reason: 'ok' };
+        async function resolveEntryForUrl(url) {
             if (extractVdoseToken(url)) {
+                const rs = await resolveSlicnToStream(url);
+                if (rs.url) return { url: rs.url, thumb: rs.thumb, reason: 'ok' };
                 const vd = await fetchVdoseThumbnail(url);
-                return { thumb: vd.url, reason: vd.reason };
+                return { url: url, thumb: vd.url, reason: 'link download gagal: ' + rs.reason };
             }
+            const ak = extractAlflixKey(url);
+            if (ak) return { url: url, thumb: fashstreamThumbFromKey(ak), reason: 'ok' };
             const cap = await captureVideoFrameThumbnail(url);
-            return { thumb: cap.url, reason: cap.reason };
+            return { url: url, thumb: cap.url, reason: cap.reason };
         }
 
         async function handleBatchUrls() {
@@ -2384,9 +2443,11 @@
                 bar.style.width = Math.round((i / urls.length) * 100) + '%';
                 if (existingUrls.has(url)) { dupCount++; continue; }
                 try {
-                    setSt(tag + 'Mengambil thumbnail…');
-                    const r = await resolveThumbForUrl(url);
-                    if (!r.thumb) { noThumb.push((i + 1) + ' (' + r.reason + ')'); console.warn('Thumbnail gagal:', url, r.reason); }
+                    setSt(tag + 'Mengambil link download & thumbnail…');
+                    const r = await resolveEntryForUrl(url);
+                    const videoUrl = r.url || url;
+                    if (r.reason !== 'ok') { noThumb.push((i + 1) + ' (' + r.reason + ')'); console.warn('Resolve sebagian gagal:', url, r.reason); }
+                    if (videoUrl !== url && existingUrls.has(videoUrl)) { dupCount++; continue; }
 
                     const list = targetFolder ? targetFolder.videos : data.rootVideos;
                     const title = String(list.length + 1);
@@ -2407,13 +2468,13 @@
                     const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
                     const initialLikes = likesRaw !== '' ? parseInt(likesRaw) : Math.floor(initialViews * (0.6 + Math.random() * 0.3));
                     list.push({
-                        id: newVideoId, title, thumbnail: r.thumb || '', url, paidUrl: '',
+                        id: newVideoId, title, thumbnail: r.thumb || '', url: videoUrl, paidUrl: '',
                         size: sizeRaw, views: initialViews, likes: initialLikes,
                         previewSeconds, adLink, noPreview,
                         paywall: paywallOn, paywallPrice: paywallOn ? paywallPrice : 0, paywallKey,
                         date: new Date().toISOString()
                     });
-                    existingUrls.add(url);
+                    existingUrls.add(videoUrl);
                     setSt(tag + 'Menyimpan…');
                     await saveToCloud();
                     okCount++;
@@ -2428,7 +2489,7 @@
             renderCurrentView();
             updateFolderSelect();
             updateBannerDisplay();
-            if (noThumb.length) showNotification('⚠️ ' + noThumb.length + ' video tanpa thumbnail, isi manual lewat Edit. Link nomor: ' + noThumb.join(', '), 'error');
+            if (noThumb.length) showNotification('⚠️ ' + noThumb.length + ' link bermasalah (link download/thumbnail). Cek lewat Edit. Nomor: ' + noThumb.join(', '), 'error');
             const extra = (dupCount ? ', ' + dupCount + ' dilewati (sudah ada)' : '') + (failed.length ? ', ' + failed.length + ' gagal: ' + failed.join('; ') : '');
             if (failed.length) {
                 setSt('⚠️ ' + okCount + ' berhasil' + extra, '#f59b00');
@@ -4244,6 +4305,17 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
 
             let finalThumb = thumb;
+            if (finalUrl && extractVdoseToken(finalUrl)) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengambil link download...';
+                const rs = await resolveSlicnToStream(finalUrl);
+                if (rs.url) {
+                    finalUrl = rs.url;
+                    if (!finalThumb) finalThumb = rs.thumb;
+                } else {
+                    console.warn('Konversi link gagal:', rs.reason);
+                    showNotification('⚠️ Link download tidak bisa diambil (' + rs.reason + '). Link asli dipakai.', 'error');
+                }
+            }
             const alflixKey = extractAlflixKey(finalUrl);
             if (!finalThumb && alflixKey) {
                 finalThumb = fashstreamThumbFromKey(alflixKey);
