@@ -379,6 +379,8 @@
         .admin-form.active { display: block; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; color: #888; font-size: 13px; margin-bottom: 5px; }
+        .form-group textarea { width: 100%; padding: 10px 14px; background: #14151A; border: 1px solid #2a2a2a; border-radius: 8px; color: white; font-size: 13px; resize: vertical; line-height: 1.5; }
+        .form-group textarea:focus { border-color: #f59b00; outline: none; }
         .form-group input, .form-group select { width: 100%; padding: 10px 14px; background: #14151A; border: 1px solid #2a2a2a; border-radius: 8px; color: white; font-size: 14px; }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: #f59b00; }
         .form-group input::placeholder { color: #444; }
@@ -1248,6 +1250,17 @@
                 <div class="form-group">
                     <label>URL Video</label>
                     <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4 atau link halaman/embed host video">
+                </div>
+                <div class="form-group">
+                    <label>Tambah Banyak URL Sekaligus (satu link per baris). Thumbnail otomatis, judul otomatis nomor urut. Folder, preview, view/like, iklan & paywall di bawah berlaku untuk semua link</label>
+                    <textarea id="batchUrls" rows="5" placeholder="https://stream.alflix.cv/videos/2026/10/xxxx.mp4&#10;https://stream.alflix.cv/videos/2026/10/yyyy.mp4"></textarea>
+                    <button type="button" id="btnBatchUrls" onclick="handleBatchUrls()" style="margin-top:8px; display:inline-flex; align-items:center; gap:8px; background:#1C1F26; border:1px solid #f59b00; color:#f59b00; padding:10px 16px; border-radius:8px; cursor:pointer; font-size:13px;">
+                        <i class="fas fa-layer-group"></i> Tambahkan Semua URL
+                    </button>
+                    <div id="batchUrlBarWrap" style="display:none; margin-top:8px; height:6px; background:#14151A; border-radius:4px; overflow:hidden;">
+                        <div id="batchUrlBar" style="height:100%; width:0%; background:#f59b00; transition:width .2s;"></div>
+                    </div>
+                    <span id="batchUrlStatus" style="display:none; font-size:12px; margin-top:6px;"></span>
                 </div>
                 <div class="form-group">
                     <label>Upload Video ke Storage (otomatis isi URL Video, Thumbnail & Ukuran). Pilih banyak file sekaligus = langsung ditambahkan semua ke folder yang dipilih di bawah</label>
@@ -2289,6 +2302,128 @@
             } else {
                 setSt('✅ ' + okCount + ' video berhasil ditambahkan.', '#22c55e');
                 showNotification('✅ ' + okCount + ' video berhasil ditambahkan!', 'success');
+            }
+        }
+
+        // ==========================================================
+        // BATCH URL: tempel banyak link video (satu per baris) -> semua
+        // ditambahkan sekaligus. Thumbnail otomatis per link:
+        //   stream.alflix.cv -> dari pola path | slicndrive -> API vdose
+        //   lainnya -> coba ambil frame video (bisa gagal karena CORS)
+        // ==========================================================
+        async function resolveThumbForUrl(url) {
+            const ak = extractAlflixKey(url);
+            if (ak) return { thumb: fashstreamThumbFromKey(ak), reason: 'ok' };
+            if (extractVdoseToken(url)) {
+                const vd = await fetchVdoseThumbnail(url);
+                return { thumb: vd.url, reason: vd.reason };
+            }
+            const cap = await captureVideoFrameThumbnail(url);
+            return { thumb: cap.url, reason: cap.reason };
+        }
+
+        async function handleBatchUrls() {
+            if (!isAdminLoggedIn) { showNotification('❌ Anda harus login sebagai admin!', 'error'); return; }
+            const st = document.getElementById('batchUrlStatus');
+            const barWrap = document.getElementById('batchUrlBarWrap');
+            const bar = document.getElementById('batchUrlBar');
+            const btn = document.getElementById('btnBatchUrls');
+            const setSt = (text, color) => { st.style.display = 'inline'; st.style.color = color || '#888'; st.textContent = text; };
+
+            const rawList = document.getElementById('batchUrls').value.split(/[\s,]+/).map(u => convertVideyUrl(u.trim())).filter(u => /^https?:\/\//i.test(u));
+            const urls = Array.from(new Set(rawList));
+            if (!urls.length) { showNotification('Isi minimal satu URL video (satu per baris).', 'error'); return; }
+
+            const folderId = document.getElementById('videoFolder').value;
+            const noPreview = document.getElementById('videoNoPreview').checked;
+            const previewSeconds = parsePreviewTime(document.getElementById('videoPreviewSeconds').value.trim(), 5);
+            const viewsRaw = document.getElementById('videoViews').value.trim();
+            const likesRaw = document.getElementById('videoLikes').value.trim();
+            const manualAdLink = document.getElementById('videoAdLink').value.trim();
+            const sizeRaw = document.getElementById('videoSize').value.trim();
+            const paywallOn = !noPreview && !!document.getElementById('videoPaywall').checked;
+            const autoAd = !noPreview && (paywallOn || !!document.getElementById('videoAutoAd').checked);
+            let paywallPrice = 0;
+            if (paywallOn) {
+                const sel = document.getElementById('videoPaywallPrice').value;
+                paywallPrice = sel === 'custom'
+                    ? parseInt(String(document.getElementById('videoPaywallCustom').value).replace(/[^0-9]/g, ''), 10)
+                    : parseInt(sel, 10);
+                if (!paywallPrice || paywallPrice < 500 || paywallPrice > 5000000) {
+                    showNotification('❌ Nominal paywall harus Rp 500 – Rp 5.000.000', 'error');
+                    return;
+                }
+            }
+
+            const targetFolder = folderId ? data.folders.find(f => f.id === folderId) : null;
+            const existingUrls = new Set((targetFolder ? targetFolder.videos : data.rootVideos).map(v => v.url));
+
+            btn.disabled = true;
+            barWrap.style.display = 'block';
+            bar.style.width = '0%';
+            let okCount = 0, dupCount = 0;
+            const failed = [];
+            const noThumb = [];
+
+            for (let i = 0; i < urls.length; i++) {
+                const url = urls[i];
+                const tag = '(' + (i + 1) + '/' + urls.length + ') ';
+                bar.style.width = Math.round((i / urls.length) * 100) + '%';
+                if (existingUrls.has(url)) { dupCount++; continue; }
+                try {
+                    setSt(tag + 'Mengambil thumbnail…');
+                    const r = await resolveThumbForUrl(url);
+                    if (!r.thumb) { noThumb.push((i + 1) + ' (' + r.reason + ')'); console.warn('Thumbnail gagal:', url, r.reason); }
+
+                    const list = targetFolder ? targetFolder.videos : data.rootVideos;
+                    const title = String(list.length + 1);
+                    const newVideoId = 'vid_' + Date.now() + '_' + i;
+                    const paywallKey = paywallOn
+                        ? Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('')
+                        : '';
+
+                    let adLink = manualAdLink;
+                    if (autoAd && !adLink) {
+                        setSt(tag + 'Membuat link Move2link…');
+                        try {
+                            const unlockUrl = window.location.origin + window.location.pathname + '?unlock=' + encodeURIComponent(newVideoId) + (paywallKey ? '&k=' + paywallKey : '');
+                            adLink = await shortenViaMove2link(unlockUrl, title, paywallPrice);
+                        } catch (e) { console.warn('Auto ad link gagal:', e); showNotification('⚠️ Link ' + (i + 1) + ': Move2link gagal (' + e.message + '). Diisi manual lewat Edit.', 'error'); }
+                    }
+
+                    const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
+                    const initialLikes = likesRaw !== '' ? parseInt(likesRaw) : Math.floor(initialViews * (0.6 + Math.random() * 0.3));
+                    list.push({
+                        id: newVideoId, title, thumbnail: r.thumb || '', url, paidUrl: '',
+                        size: sizeRaw, views: initialViews, likes: initialLikes,
+                        previewSeconds, adLink, noPreview,
+                        paywall: paywallOn, paywallPrice: paywallOn ? paywallPrice : 0, paywallKey,
+                        date: new Date().toISOString()
+                    });
+                    existingUrls.add(url);
+                    setSt(tag + 'Menyimpan…');
+                    await saveToCloud();
+                    okCount++;
+                } catch (err) {
+                    console.warn('Batch URL gagal:', url, err);
+                    failed.push((i + 1) + ' (' + err.message + ')');
+                }
+            }
+
+            bar.style.width = '100%';
+            btn.disabled = false;
+            renderCurrentView();
+            updateFolderSelect();
+            updateBannerDisplay();
+            if (noThumb.length) showNotification('⚠️ ' + noThumb.length + ' video tanpa thumbnail, isi manual lewat Edit. Link nomor: ' + noThumb.join(', '), 'error');
+            const extra = (dupCount ? ', ' + dupCount + ' dilewati (sudah ada)' : '') + (failed.length ? ', ' + failed.length + ' gagal: ' + failed.join('; ') : '');
+            if (failed.length) {
+                setSt('⚠️ ' + okCount + ' berhasil' + extra, '#f59b00');
+                showNotification('⚠️ ' + okCount + ' video ditambahkan, ' + failed.length + ' gagal.', 'error');
+            } else {
+                setSt('✅ ' + okCount + ' video berhasil ditambahkan' + extra + '.', '#22c55e');
+                showNotification('✅ ' + okCount + ' video berhasil ditambahkan!', 'success');
+                if (okCount) document.getElementById('batchUrls').value = '';
             }
         }
 
