@@ -5054,8 +5054,7 @@
             } catch (err) { recSessionActive = false; }
         }
 
-                function stopRecorderForSlot(slot, label, videoId) {
-            retu        function stopRecorderForSlot(slot, label, videoId) {
+                        function stopRecorderForSlot(slot, label, videoId) {
             return new Promise(resolve => {
                 if (!slot.recorder || slot.recorder.state === 'inactive') {
                     if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
