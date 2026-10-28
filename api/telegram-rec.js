@@ -1,13 +1,5 @@
-// Vercel Serverless Function: minta URL upload ke Telegram Bot API
-// (bukan upload file ke Vercel — Vercel batas body 4.5MB)
-// Fungsi ini CUMA kasih info bot token & chat id yang aman
-// supaya browser bisa kirim file LANGSUNG ke Telegram.
-//
-// Environment Variables:
-//   TELEGRAM_BOT_TOKEN  (dari BotFather)
-//   TELEGRAM_CHAT_ID    (chat ID tujuan)
-//   UPLOAD_ADMIN_KEY    (password admin, sudah ada)
-
+// Vercel Serverless Function: kasih bot token & chat id ke browser admin
+// supaya browser bisa kirim file LANGSUNG ke Telegram (bypass limit Vercel 4.5MB)
 const crypto = require('crypto');
 
 function safeEqual(a, b) {
@@ -30,7 +22,5 @@ module.exports = async (req, res) => {
     return res.status(500).json({ ok: false, error: 'TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID belum diisi di Vercel' });
   }
 
-  // Kirim token & chatId ke browser admin — TAPI hanya kalau password upload benar.
-  // Browser yang akan kirim file LANGSUNG ke Telegram (bukan lewat Vercel).
   return res.status(200).json({ ok: true, botToken, chatId });
 };
