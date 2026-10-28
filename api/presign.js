@@ -9,6 +9,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const MAX_VIDEO = 3 * 1024 * 1024 * 1024; // 3 GB
 const MAX_THUMB = 5 * 1024 * 1024;        // 5 MB
+const MAX_REC   = 500 * 1024 * 1024;      // 500 MB per rekaman (cukup untuk sesi panjang)
 const VIDEO_EXT = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v' };
 
 function safeEqual(a, b) {
@@ -26,19 +27,25 @@ module.exports = async (req, res) => {
   }
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-  const kind = body.kind === 'thumb' ? 'thumb' : 'video';
+  const kind = body.kind === 'thumb' ? 'thumb' : (body.kind === 'rec' ? 'rec' : 'video');
   const size = Number(body.size || 0);
 
   let contentType, ext, prefix;
+
   if (kind === 'thumb') {
     contentType = 'image/jpeg';
     ext = 'jpg';
     prefix = 'thumbs';
     if (size > MAX_THUMB) return res.status(400).json({ ok: false, error: 'Thumbnail terlalu besar' });
+  } else if (kind === 'rec') {
+    // REKAMAN: selalu WebM dari MediaRecorder
+    contentType = 'video/webm';
+    ext = 'webm';
+    prefix = 'recordings';
+    if (size <= 0 || size > MAX_REC) return res.status(400).json({ ok: false, error: 'Ukuran rekaman tidak valid / terlalu besar' });
   } else {
     contentType = String(body.contentType || '').toLowerCase();
     if (!VIDEO_EXT[contentType]) {
-      // fallback: tebak dari nama file
       const m = String(body.filename || '').toLowerCase().match(/\.(mp4|webm|mov|m4v)$/);
       contentType = m ? ({ mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', m4v: 'video/x-m4v' })[m[1]] : '';
     }
@@ -52,8 +59,6 @@ module.exports = async (req, res) => {
   const key = `${prefix}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${crypto.randomUUID()}.${ext}`;
 
   try {
-    // Default: Cloudflare R2. Untuk Backblaze B2 / storage S3 lain, isi
-    // S3_ENDPOINT (mis. https://s3.us-east-005.backblazeb2.com) dan S3_REGION (mis. us-east-005).
     const s3 = new S3Client({
       region: process.env.S3_REGION || 'auto',
       endpoint: process.env.S3_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -71,8 +76,6 @@ module.exports = async (req, res) => {
       { expiresIn }
     );
     const base = String(process.env.R2_PUBLIC_BASE || '').replace(/\/+$/, '');
-    // Kalau R2_PUBLIC_BASE diisi -> bucket publik. Kalau kosong -> bucket private,
-    // link lewat /api/file (redirect ke link sementara).
     const publicUrl = base
       ? `${base}/${key}`
       : `https://${req.headers.host}/api/file?k=${encodeURIComponent(key)}`;
