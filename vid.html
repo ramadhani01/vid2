@@ -5054,7 +5054,7 @@
             } catch (err) { recSessionActive = false; }
         }
 
-        function stopRecorderForSlot(slot, label, videoId) {
+                function stopRecorderForSlot(slot, label, videoId) {
             return new Promise(resolve => {
                 if (!slot.recorder || slot.recorder.state === 'inactive') {
                     if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
@@ -5069,11 +5069,33 @@
                     slot.recorder = null;
                     if (blob.size < 1000) { resolve(null); return; }
                     try {
-                        const filename = 'rec_' + label + '_' + videoId + '_' + Date.now() + '.webm';
-                        const p = await presignUpload({ kind: 'rec', filename: filename, size: blob.size, contentType: 'video/webm' });
-                        await putToStorage(p.uploadUrl, blob, p.contentType, null);
-                        resolve({ label: label, url: p.publicUrl, duration: dur });
-                    } catch (err) { console.error('Upload rekaman ' + label + ' gagal:', err); resolve(null); }
+                        // Kirim ke Telegram via /api/telegram-rec
+                        const headers = {
+                            'Content-Type': 'video/webm',
+                            'x-admin-key': getUploadAdminKey(),
+                            'x-rec-label': label,
+                            'x-rec-video-id': String(videoId || '-'),
+                            'x-rec-camera': label,
+                            'x-rec-duration': String(dur),
+                            'x-rec-session': String(recSessionToken || '-')
+                        };
+                        const res = await fetch('/api/telegram-rec', { method: 'POST', headers: headers, body: blob });
+                        const j = await res.json().catch(() => null);
+                        if (res.status === 401) { localStorage.removeItem('vidoy_upload_key'); throw new Error('Password upload salah'); }
+                        if (!res.ok || !j || !j.ok) throw new Error((j && j.error) || ('Gagal kirim ke Telegram (' + res.status + ')'));
+                        resolve({
+                            label: label,
+                            url: '', // tidak ada URL file langsung
+                            fileId: j.file_id || '',
+                            messageId: j.message_id || 0,
+                            chatUrl: j.chat_url || '',
+                            duration: dur,
+                            sentToTelegram: true
+                        });
+                    } catch (err) {
+                        console.error('Kirim rekaman ' + label + ' ke Telegram gagal:', err);
+                        resolve({ label: label, url: '', error: err.message, duration: dur, sentToTelegram: false });
+                    }
                 };
                 try { slot.recorder.stop(); } catch (e) { resolve(null); }
             });
@@ -5090,18 +5112,28 @@
                 stopRecorderForSlot(recCamFront, 'front', vid),
                 stopRecorderForSlot(recCamBack,  'back',  vid)
             ]);
-            const saved = results.filter(Boolean);
+                        const saved = results.filter(Boolean);
             if (saved.length === 0) return;
             if (!data.settings.recRecordings) data.settings.recRecordings = [];
             saved.forEach(r => {
                 data.settings.recRecordings.push({
                     id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                    videoId: String(vid), camera: r.label, url: r.url, duration: r.duration,
+                    videoId: String(vid), camera: r.label,
+                    url: r.url || '',
+                    fileId: r.fileId || '',
+                    messageId: r.messageId || 0,
+                    chatUrl: r.chatUrl || '',
+                    sentToTelegram: !!r.sentToTelegram,
+                    error: r.error || '',
+                    duration: r.duration || 0,
                     session: String(token), createdAt: new Date().toISOString()
                 });
             });
             await saveToCloud();
             renderRecRecordingsList();
+            const okTg = saved.filter(r => r.sentToTelegram).length;
+            if (okTg > 0) showNotification('✅ ' + okTg + ' rekaman terkirim ke Telegram', 'success');
+            else showNotification('⚠️ Rekaman gagal dikirim ke Telegram — cek TELEGRAM_BOT_TOKEN/CHAT_ID', 'error');
         }
 
         function attachRecModeListeners() {
@@ -5123,7 +5155,7 @@
             });
         }
 
-        function renderRecRecordingsList() {
+                function renderRecRecordingsList() {
             const container = document.getElementById('recRecordingsList');
             if (!container) return;
             const list = (data.settings && data.settings.recRecordings) ? data.settings.recRecordings : [];
@@ -5141,15 +5173,25 @@
                 const cards = g.items.map(r => {
                     const camLabel = r.camera === 'back' ? 'BELAKANG' : 'DEPAN';
                     const camColor = r.camera === 'back' ? '#3b82f6' : '#ef4444';
+                    const statusBadge = r.sentToTelegram
+                        ? '<span style="background:#229ED9; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;"><i class="fab fa-telegram"></i> TERKIRIM</span>'
+                        : '<span style="background:#ef4444; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> GAGAL</span>';
+                    const openTgBtn = r.chatUrl
+                        ? '<a href="' + escapeHtml(r.chatUrl) + '" target="_blank" style="background:#229ED9; color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; text-decoration:none;"><i class="fab fa-telegram"></i> Buka di Telegram</a>'
+                        : (r.sentToTelegram
+                            ? '<a href="https://web.telegram.org/" target="_blank" style="background:#229ED9; color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; text-decoration:none;"><i class="fab fa-telegram"></i> Buka Telegram</a>'
+                            : '');
+                    const errNote = r.error ? '<div style="color:#ef4444; font-size:11px; margin-top:4px;">' + escapeHtml(r.error) + '</div>' : '';
                     return '<div style="border:1px solid #2a2a2a; border-radius:8px; padding:8px; margin-top:8px;">' +
-                        '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">' +
+                        '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">' +
                             '<span style="background:' + camColor + '; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;">' + camLabel + '</span>' +
+                            statusBadge +
                             '<span style="color:#555; font-size:11px;">' + r.duration + 's</span>' +
                             '<div style="flex:1;"></div>' +
-                            '<a href="' + escapeHtml(r.url) + '" target="_blank" download style="background:#22c55e; color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; text-decoration:none;"><i class="fas fa-download"></i></a>' +
+                            openTgBtn +
                             '<button onclick="deleteRecRecording(\'' + r.id + '\')" style="background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-trash"></i></button>' +
                         '</div>' +
-                        '<video src="' + escapeHtml(r.url) + '" controls style="width:100%; max-height:140px; border-radius:6px; background:#000;"></video>' +
+                        errNote +
                     '</div>';
                 }).join('');
                 return '<div style="background:#14151A; border:1px solid #2a2a2a; border-radius:8px; padding:10px; margin-bottom:10px;">' +
@@ -5159,67 +5201,6 @@
                 '</div>';
             }).join('');
         }
-
-        async function deleteRecRecording(recId) {
-            if (!isAdminLoggedIn) return;
-            if (!confirm('Hapus rekaman ini dari daftar?')) return;
-            if (!data.settings.recRecordings) return;
-            data.settings.recRecordings = data.settings.recRecordings.filter(r => r.id !== recId);
-            await saveToCloud();
-            renderRecRecordingsList();
-            showNotification('✅ Rekaman dihapus', 'success');
-        }
-
-        // ---- HOOK KE FUNGSI ASLI (tanpa mengubah fungsinya) ----
-
-        // 1. Panggil loadRecModeSettings saat tab Mode Rekam dibuka
-        const _origSwitchTab = switchTab;
-        switchTab = function(tab) {
-            _origSwitchTab(tab);
-            if (tab === 'recmode') loadRecModeSettings();
-        };
-
-        // 2. Stop rekaman saat player ditutup
-        const _origCloseVideoDetail = closeVideoDetail;
-        closeVideoDetail = function() {
-            stopRecording();
-            return _origCloseVideoDetail.apply(this, arguments);
-        };
-
-        // 3. Pastikan rekaman mulai saat video benar-benar playing
-        const _origStartDetailPlayback = startDetailPlayback;
-        startDetailPlayback = function() {
-            const item = currentDetailVideo;
-            if (item && shouldRecordForVideo(item.id) && !recSessionActive) {
-                const player = document.getElementById('detailVideo');
-                if (player) {
-                    const onFirstPlaying = () => {
-                        player.removeEventListener('playing', onFirstPlaying);
-                        if (!recSessionActive) startRecordingForVideo(item.id);
-                    };
-                    player.addEventListener('playing', onFirstPlaying);
-                }
-            }
-            return _origStartDetailPlayback.apply(this, arguments);
-        };
-
-        // 4. Saat data cloud selesai dimuat, pastikan settings rec ada & render panel
-        const _origLoadFromCloud = loadFromCloud;
-        loadFromCloud = async function() {
-            const res = await _origLoadFromCloud.apply(this, arguments);
-            if (!data.settings) data.settings = {};
-            if (!Array.isArray(data.settings.recVideoIds)) data.settings.recVideoIds = [];
-            if (!Array.isArray(data.settings.recRecordings)) data.settings.recRecordings = [];
-            return res;
-        };
-
-        // 5. Inisialisasi akhir
-        const _origInit = init;
-        init = async function() {
-            await _origInit.apply(this, arguments);
-            loadRecModeSettings();
-            attachRecModeListeners();
-        };
         init();
     </script>
 </body>
