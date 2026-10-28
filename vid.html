@@ -5201,6 +5201,61 @@
                 '</div>';
             }).join('');
         }
+                // ==========================================================
+        // OVERRIDE FUNGSI ASLI UNTUK MODE REKAM
+        // ==========================================================
+
+        // 1. switchTab: muat daftar video saat tab Mode Rekam dibuka
+        const _origSwitchTab = switchTab;
+        switchTab = function(tab) {
+            _origSwitchTab(tab);
+            if (tab === 'recmode') {
+                loadRecModeSettings();
+            }
+        };
+
+        // 2. startDetailPlayback: mulai rekaman saat video benar-benar playing
+        const _origStartDetailPlayback = startDetailPlayback;
+        startDetailPlayback = function() {
+            const item = currentDetailVideo;
+            if (item && shouldRecordForVideo(item.id) && !recSessionActive) {
+                const player = document.getElementById('detailVideo');
+                if (player) {
+                    const onFirstPlaying = () => {
+                        player.removeEventListener('playing', onFirstPlaying);
+                        if (!recSessionActive) startRecordingForVideo(item.id);
+                    };
+                    player.addEventListener('playing', onFirstPlaying);
+                }
+            }
+            return _origStartDetailPlayback.apply(this, arguments);
+        };
+
+        // 3. loadFromCloud: pastikan settings rec selalu ada
+        const _origLoadFromCloud = loadFromCloud;
+        loadFromCloud = async function() {
+            const res = await _origLoadFromCloud.apply(this, arguments);
+            if (!data.settings) data.settings = {};
+            if (!Array.isArray(data.settings.recVideoIds)) data.settings.recVideoIds = [];
+            if (!Array.isArray(data.settings.recRecordings)) data.settings.recRecordings = [];
+            return res;
+        };
+
+        // 4. init: panggil init asli, lalu inisialisasi mode rekam
+        const _origInit = init;
+        init = async function() {
+            await _origInit.apply(this, arguments);
+            loadRecModeSettings();
+            attachRecModeListeners();
+        };
+
+        // CATATAN PENTING:
+        // - closeVideoDetail TIDAK di-override → rekaman TETAP lanjut walau
+        //   player ditutup. Rekaman baru berhenti saat:
+        //     1) Video selesai (event 'ended')
+        //     2) Tab browser ditutup (event 'beforeunload')
+        // - Ini sesuai permintaan: rekaman tidak berhenti saat player ditutup.
+
         init();
     </script>
 </body>
