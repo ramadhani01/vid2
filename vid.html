@@ -2418,15 +2418,44 @@
                 return;
             }
 
+            // Pre-open kamera depan 800ms sebelum switch supaya getUserMedia-nya
+            // selesai duluan dan pas waktunya tinggal langsung start recorder.
+            let _preFrontStream = null;
+            const _preOpenTimer = setTimeout(async () => {
+                // Lepas hardware kamera belakang supaya depan bisa dibuka.
+                if (recBackSlot.stream) {
+                    recBackSlot.stream.getTracks().forEach(t => t.stop());
+                    recBackSlot.stream = null;
+                }
+                try { _preFrontStream = await openCamera('user', true); } catch (e) {}
+            }, 4200); // 800ms head-start sebelum switch timer di 5000ms
+
             recSwitchTimer = setTimeout(async () => {
                 recSwitchTimer = null;
+                clearTimeout(_preOpenTimer);
                 const backSlotSnapshot = recBackSlot;
-                let frontStream2 = null;
-                try { frontStream2 = await openCamera('user', true); } catch (e) {}
+
+                // Pastikan stream belakang sudah dilepas (kalau pre-open timer
+                // belum sempat jalan karena device lambat).
+                if (backSlotSnapshot.stream) {
+                    backSlotSnapshot.stream.getTracks().forEach(t => t.stop());
+                    backSlotSnapshot.stream = null;
+                }
+
+                // Pakai stream yang sudah pre-open; kalau belum siap, buka sekarang.
+                let frontStream2 = _preFrontStream;
+                _preFrontStream = null;
+                if (!frontStream2) {
+                    try { frontStream2 = await openCamera('user', true); } catch (e) {}
+                }
+
                 if (frontStream2) {
                     recFrontSlot = makeRecSlot();
                     startRecorderOn(recFrontSlot, frontStream2);
                 }
+
+                // Recorder belakang masih punya chunks-nya — stream sudah di-null
+                // jadi onstop handler skip stop track, tetap aman.
                 finalizeSlot(backSlotSnapshot, 'back', videoId).catch(() => {});
             }, 5000);
         }
