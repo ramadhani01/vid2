@@ -2462,10 +2462,27 @@
 
         async function finalizeSlot(slot, label, videoId) {
             if (slot._finalizing) return null;
+            if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
+
+            // Recorder bisa sudah inactive kalau track-nya di-stop lebih awal
+            // (misal oleh pre-open timer). Kalau ada chunks, tetap upload.
             if (!slot.recorder || slot.recorder.state === 'inactive') {
-                if (slot.stream) { slot.stream.getTracks().forEach(t => t.stop()); slot.stream = null; }
-                return null;
+                if (!slot.chunks || slot.chunks.length === 0) return null;
+                slot._finalizing = true;
+                const isMp4 = (slot.mime || '').indexOf('mp4') !== -1;
+                const blob = new Blob(slot.chunks, { type: isMp4 ? 'video/mp4' : 'video/webm' });
+                slot.chunks = [];
+                const dur = slot.startTime ? Math.round((Date.now() - slot.startTime.getTime()) / 1000) : 0;
+                slot.startTime = null;
+                slot.recorder = null;
+                if (blob.size < 1000) return null;
+                const ok = await uploadBlobToTelegram(blob, label, videoId, dur, recSessionToken, slot.mime);
+                if (!ok) {
+                    await savePendingRecFile({ id: 'pending_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), blob, label, videoId, duration: dur, session: recSessionToken, mime: slot.mime, createdAt: new Date().toISOString() });
+                }
+                return ok;
             }
+
             slot._finalizing = true;
             return new Promise(resolve => {
                 slot.recorder.onstop = async () => {
