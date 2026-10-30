@@ -1187,13 +1187,20 @@
             const isM3U8 = /\.m3u8(\?|#|$)/i.test(playUrl);
 
             if (isM3U8 && typeof Hls !== 'undefined' && Hls.isSupported()) {
-                const hls = new Hls({
-                    xhrSetup: function(xhr) {
-                        xhr.setRequestHeader('Referer', 'https://surrit.com/');
-                    }
-                });
+                // Custom loader: proxy semua request (manifest + segment .ts) lewat /api/proxy
+                const ProxyLoader = (function() {
+                    const DefaultLoader = Hls.DefaultConfig.loader;
+                    return class extends DefaultLoader {
+                        load(context, config, callbacks) {
+                            context.url = '/api/proxy?url=' + encodeURIComponent(context.url);
+                            super.load(context, config, callbacks);
+                        }
+                    };
+                })();
+
+                const hls = new Hls({ loader: ProxyLoader });
                 window._hlsInstance = hls;
-                hls.loadSource(playUrl);
+                hls.loadSource('/api/proxy?url=' + encodeURIComponent(playUrl));
                 hls.attachMedia(player);
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
                     loading.style.display = 'none';
