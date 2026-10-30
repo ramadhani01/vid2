@@ -134,9 +134,12 @@
         .video-card .thumb .video-paid-badge { position: absolute; top: 8px; left: 8px; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
         .video-card .thumb .video-paid-badge.paid { background: rgba(245, 155, 0, 0.95); color: #14151A; }
         .video-card .thumb .video-paid-badge.free { background: rgba(34, 197, 94, 0.95); color: #0c1a10; }
-        .video-card.landscape { aspect-ratio: 16/9; grid-column: span 2; }
+        .video-card.landscape { aspect-ratio: 16/9; }
         .video-card.landscape .thumb { aspect-ratio: 16/9; }
         .video-card .thumb .video-duration-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 2; letter-spacing: 0.3px; }
+        .video-grid .landscape-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 4px; }
+        @media (min-width: 640px) { .video-grid .landscape-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 960px) { .video-grid .landscape-grid { grid-template-columns: repeat(4, 1fr); } }
         .banner-grid-card .thumb .grid-banner-badge { position: absolute; top: 8px; right: 8px; background: rgba(245, 155, 0, 0.9); color: #14151A; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
 
         .footer { max-width: 1200px; margin: 30px auto 0; text-align: center; padding: 20px 0 10px; border-top: 1px solid #1C1F26; color: #333; font-size: 13px; }
@@ -1646,7 +1649,7 @@
             const folderObj = isFolderView ? data.folders.find(f => f.id === currentFolderId) : null;
             const photos = (folderObj && Array.isArray(folderObj.photos)) ? folderObj.photos : [];
             if ((!items || items.length === 0) && photos.length === 0) { grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video atau foto di sini</p></div>`; document.getElementById('totalCount').textContent = '0'; return; }
-            const videosHtml = (items || []).map((v, idx) => `
+            const videoCardHtml = (v, idx) => `
                 <div class="video-card${v.landscape ? ' landscape' : ''}" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${v.id}', ${isFolderView}); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
                     ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${v.id}', ${isFolderView})"><i class="fas fa-pen"></i></button>` : ''}
@@ -1654,7 +1657,11 @@
                     <div class="thumb"><img src="${escapeHtml(v.thumbnail)}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">${(v.showDuration && v.duration) ? `<div class="video-duration-badge">${escapeHtml(v.duration)}</div>` : ''}</div>
                     <div class="info"><h3 title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</h3></div>
                 </div>
-            `).join('');
+            `;
+            const indexedItems = (items || []).map((v, idx) => ({ v, idx }));
+            const normalVideosHtml = indexedItems.filter(x => !x.v.landscape).map(x => videoCardHtml(x.v, x.idx)).join('');
+            const landscapeVideosHtml = indexedItems.filter(x => x.v.landscape).map(x => videoCardHtml(x.v, x.idx)).join('');
+            const videosHtml = normalVideosHtml + (landscapeVideosHtml ? `<div class="landscape-grid">${landscapeVideosHtml}</div>` : '');
             const photosHtml = photos.length ? renderPhotoCards(folderObj, photos, showDelete) : '';
             const bothShown = videosHtml !== '' && photosHtml !== '';
             const videoLabel = bothShown ? `<div class="grid-section-label"><i class="fas fa-video"></i> Video (${items.length})</div>` : '';
@@ -1754,8 +1761,9 @@
                     </div>
                 `;
             });
+            let landscapeHtml = '';
             data.rootVideos.forEach((item, idx) => {
-                html += `
+                const cardHtml = `
                     <div class="video-card${item.landscape ? ' landscape' : ''}" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${item.id}', false); }">
                         ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
                         ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${item.id}', false)"><i class="fas fa-pen"></i></button>` : ''}
@@ -1768,7 +1776,9 @@
                         <div class="info"><h3 title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</h3></div>
                     </div>
                 `;
+                if (item.landscape) landscapeHtml += cardHtml; else html += cardHtml;
             });
+            if (landscapeHtml) html += `<div class="landscape-grid">${landscapeHtml}</div>`;
             grid.innerHTML = html;
             let totalVideosCount = data.rootVideos.length;
             data.folders.forEach(f => totalVideosCount += f.videos.length);
