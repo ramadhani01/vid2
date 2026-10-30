@@ -6,7 +6,6 @@
     <title>Vidoy Stream</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #14151A; color: white; min-height: 100vh; padding: 20px; }
@@ -1170,81 +1169,28 @@
             errorBox.classList.remove('visible');
             loading.style.display = 'block';
             errorLink.href = playUrl;
-
             if (!isDirectVideoUrl(playUrl) || isFollowLinkUrl(playUrl)) {
                 loading.style.display = 'none';
                 poster.style.display = 'block';
                 window.open(playUrl, '_blank');
                 return;
             }
-
-            // Destroy HLS instance lama kalau ada
-            if (window._hlsInstance) {
-                window._hlsInstance.destroy();
-                window._hlsInstance = null;
-            }
-
-            const isM3U8 = /\.m3u8(\?|#|$)/i.test(playUrl);
-
-            if (isM3U8 && typeof Hls !== 'undefined' && Hls.isSupported()) {
-                const hls = new Hls({
-                    enableWorker: true,
-                    lowLatencyMode: false,
-                    fragLoadingTimeOut: 20000,
-                    manifestLoadingTimeOut: 20000,
-                });
-                window._hlsInstance = hls;
-                hls.loadSource(playUrl);
-                hls.attachMedia(player);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    loading.style.display = 'none';
-                    player.style.display = 'block';
-                    attachPreviewGateListeners();
-                    enforcePreviewGate();
-                    player.play().catch(() => {});
-                });
-                hls.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) {
-                        loading.style.display = 'none';
-                        player.style.display = 'none';
-                        errorBox.classList.add('visible');
-                    }
-                });
-            } else if (isM3U8 && player.canPlayType('application/vnd.apple.mpegurl')) {
-                // Safari — native HLS support
-                player.src = playUrl;
-                player.load();
-                player.oncanplay = function() {
-                    loading.style.display = 'none';
-                    player.style.display = 'block';
-                    attachPreviewGateListeners();
-                    enforcePreviewGate();
-                };
-                player.onerror = function() {
-                    loading.style.display = 'none';
-                    player.style.display = 'none';
-                    errorBox.classList.add('visible');
-                };
-                player.play().catch(() => {});
-            } else {
-                // MP4 / format biasa
-                player.src = playUrl;
-                player.load();
-                player.oncanplay = function() {
-                    loading.style.display = 'none';
-                    player.style.display = 'block';
-                    attachPreviewGateListeners();
-                    enforcePreviewGate();
-                };
-                player.onerror = function() {
-                    loading.style.display = 'none';
-                    player.style.display = 'none';
-                    const w = window.open(playUrl, '_blank');
-                    if (w) poster.style.display = 'block';
-                    else errorBox.classList.add('visible');
-                };
-                player.play().catch(() => {});
-            }
+            player.src = playUrl;
+            player.load();
+            player.oncanplay = function() {
+                loading.style.display = 'none';
+                player.style.display = 'block';
+                attachPreviewGateListeners();
+                enforcePreviewGate();
+            };
+            player.onerror = function() {
+                loading.style.display = 'none';
+                player.style.display = 'none';
+                const w = window.open(playUrl, '_blank');
+                if (w) poster.style.display = 'block';
+                else errorBox.classList.add('visible');
+            };
+            player.play().catch(() => {});
         }
 
         function getPreviewLimitSeconds() { return (currentDetailVideo && Number(currentDetailVideo.previewSeconds) > 0) ? Number(currentDetailVideo.previewSeconds) : 5; }
@@ -2696,19 +2642,6 @@
             openGoLinkFromUrl();
         }
         init();
-    </script>
-
-    <script>
-        // Service Worker — intercept surrit.com requests, inject Referer dari browser langsung
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .then(function(reg) {
-                    console.log('[SW] registered', reg.scope);
-                })
-                .catch(function(err) {
-                    console.warn('[SW] register failed', err);
-                });
-        }
     </script>
 </body>
 </html>
