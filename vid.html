@@ -134,7 +134,7 @@
         .video-card .thumb .video-paid-badge { position: absolute; top: 8px; left: 8px; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
         .video-card .thumb .video-paid-badge.paid { background: rgba(245, 155, 0, 0.95); color: #14151A; }
         .video-card .thumb .video-paid-badge.free { background: rgba(34, 197, 94, 0.95); color: #0c1a10; }
-        .video-card.landscape { aspect-ratio: 16/9; }
+        .video-card.landscape { aspect-ratio: 16/9; grid-column: span 2; }
         .video-card.landscape .thumb { aspect-ratio: 16/9; }
         .video-card .thumb .video-duration-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 2; letter-spacing: 0.3px; }
         .banner-grid-card .thumb .grid-banner-badge { position: absolute; top: 8px; right: 8px; background: rgba(245, 155, 0, 0.9); color: #14151A; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
@@ -388,7 +388,7 @@
                 <div class="form-group" id="videoPaywallPriceBox" style="display:none;"><label>Nominal Paywall (Rp)</label><div style="display:flex; gap:8px;"><select id="videoPaywallPrice" onchange="togglePaywallFields()" style="flex:1;"><option value="5000">Rp 5.000</option><option value="10000">Rp 10.000</option><option value="custom">Lainnya…</option></select><input type="text" inputmode="numeric" id="videoPaywallCustom" style="flex:1; display:none;"></div></div>
                 <div class="form-group" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="videoLandscape" style="width:auto; accent-color:#f59b00;"><label for="videoLandscape" style="margin:0; color:#ccc;">Mode Lanskap 16:9 (kartu jadi landscape, jika tidak dicentang kartu normal seperti biasa)</label></div>
                 <div class="form-group" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="videoShowDuration" onchange="document.getElementById('videoDurationBox').style.display=this.checked?'block':'none';" style="width:auto; accent-color:#f59b00;"><label for="videoShowDuration" style="margin:0; color:#ccc;">Tampilkan Durasi</label></div>
-                <div class="form-group" id="videoDurationBox" style="display:none;"><label>Durasi Video (contoh: 12:34)</label><input type="text" id="videoDuration" placeholder="12:34"></div>
+                <div class="form-group" id="videoDurationBox" style="display:none;"><label>Durasi Video</label><div style="display:flex; gap:8px;"><input type="text" id="videoDuration" placeholder="Kosongkan untuk deteksi otomatis" style="flex:1;"><button type="button" id="btnDetectDuration" onclick="autoDetectAddDuration()" style="flex:0 0 auto; background:#1C1F26; border:1px solid #f59b00; color:#f59b00; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;"><i class="fas fa-magic"></i> Deteksi</button></div><span style="font-size:11px; color:#666; display:block; margin-top:4px;">Durasi dideteksi otomatis dari video saat disimpan jika dikosongkan.</span></div>
                 <div class="form-group"><label>Simpan di Folder (Opsional)</label><select id="videoFolder"><option value="">Root (Tanpa Folder)</option></select></div>
                 <button type="submit" class="btn-submit" id="btnAddVideo"><i class="fas fa-plus"></i> Tambahkan Video</button>
             </form>
@@ -476,7 +476,7 @@
                 <div class="form-group" id="editFolderDeepLinkGroup" style="display:none;"><label>Link Unlock</label><div style="display:flex; gap:8px;"><input type="text" id="editFolderDeepLinkInput" readonly style="flex:1; opacity:0.8;"><button type="button" class="btn-submit" style="padding:10px 16px;" onclick="copyFolderDeepLink()"><i class="fas fa-copy"></i></button></div></div>
                 <div class="form-group" id="editLandscapeGroup" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editLandscapeInput" style="width:auto; accent-color:#f59b00;"><label for="editLandscapeInput" style="margin:0; color:#ccc;">Mode Lanskap 16:9</label></div>
                 <div class="form-group" id="editShowDurationGroup" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editShowDurationInput" onchange="document.getElementById('editDurationBox').style.display=this.checked?'block':'none';" style="width:auto; accent-color:#f59b00;"><label for="editShowDurationInput" style="margin:0; color:#ccc;">Tampilkan Durasi</label></div>
-                <div class="form-group" id="editDurationBox" style="display:none;"><label>Durasi Video (contoh: 12:34)</label><input type="text" id="editDurationInput" placeholder="12:34"></div>
+                <div class="form-group" id="editDurationBox" style="display:none;"><label>Durasi Video</label><div style="display:flex; gap:8px;"><input type="text" id="editDurationInput" placeholder="12:34" style="flex:1;"><button type="button" id="btnDetectDurationEdit" onclick="autoDetectEditDuration()" style="flex:0 0 auto; background:#1C1F26; border:1px solid #f59b00; color:#f59b00; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;"><i class="fas fa-magic"></i> Deteksi</button></div></div>
                 <div class="form-group" id="editStatsGroup"><label>Ukuran File</label><input type="text" id="editSizeInput"></div>
                 <div class="row" id="editStatsRow" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;"><label>Jumlah Ditonton</label><input type="number" id="editViewsInput" min="0"></div>
@@ -1127,6 +1127,9 @@
             player.style.display = 'none';
             removeExternalPlayer();
             destroyCurrentHls();
+            player.onerror = null;
+            player.oncanplay = null;
+            delete player.dataset.hlsRetried;
             player.pause();
             player.removeAttribute('src');
             loading.style.display = 'none';
@@ -1157,6 +1160,55 @@
         function removeExternalPlayer() { const old = document.getElementById('externalPlayerWrap'); if (old) old.remove(); }
         let currentHls = null;
         function destroyCurrentHls() { if (currentHls) { try { currentHls.destroy(); } catch (e) {} currentHls = null; } }
+
+        function formatDurationSeconds(sec) {
+            if (!isFinite(sec) || sec <= 0) return '';
+            sec = Math.round(sec);
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            const ss = String(s).padStart(2, '0');
+            return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+        }
+
+        function detectVideoDuration(url) {
+            return new Promise((resolve) => {
+                if (!url) { resolve(''); return; }
+                const vid = document.createElement('video');
+                vid.crossOrigin = 'anonymous';
+                vid.preload = 'metadata';
+                vid.muted = true;
+                vid.defaultMuted = true;
+                vid.playsInline = true;
+                vid.setAttribute('muted', '');
+                vid.setAttribute('playsinline', '');
+                vid.style.cssText = 'position:fixed; top:-9999px; left:-9999px; width:2px; height:2px;';
+                document.body.appendChild(vid);
+                let hls = null;
+                let settled = false;
+                const cleanup = () => {
+                    clearTimeout(timeoutId);
+                    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+                    try { vid.pause(); } catch (e) {}
+                    vid.removeAttribute('src');
+                    try { vid.load(); } catch (e) {}
+                    if (vid.parentNode) vid.parentNode.removeChild(vid);
+                };
+                const finish = (val) => { if (settled) return; settled = true; cleanup(); resolve(val); };
+                const timeoutId = setTimeout(() => finish(''), 12000);
+                vid.addEventListener('loadedmetadata', function() { finish(formatDurationSeconds(vid.duration)); });
+                vid.addEventListener('error', function() { finish(''); });
+                if (isHlsUrl(url) && window.Hls && window.Hls.isSupported()) {
+                    hls = new window.Hls({ maxBufferLength: 10 });
+                    hls.on(window.Hls.Events.ERROR, function(ev, data) { if (data && data.fatal) finish(''); });
+                    hls.loadSource(url);
+                    hls.attachMedia(vid);
+                } else {
+                    vid.src = url;
+                    vid.load();
+                }
+            });
+        }
         function showExternalPlayer(url) {
             removeExternalPlayer();
             const box = document.querySelector('.video-detail-player');
@@ -1370,6 +1422,10 @@
         function closeVideoDetail() {
             removeExternalPlayer();
             const player = document.getElementById('detailVideo');
+            destroyCurrentHls();
+            player.onerror = null;
+            player.oncanplay = null;
+            delete player.dataset.hlsRetried;
             player.pause();
             player.removeAttribute('src');
             player.load();
@@ -1901,12 +1957,42 @@
             const row = document.getElementById('editPreviewAdRow'); const secondsInput = document.getElementById('editPreviewSecondsInput'); const adLinkInput = document.getElementById('editAdLinkInput'); row.style.opacity = noPreview ? '0.4' : '1'; secondsInput.disabled = noPreview; adLinkInput.disabled = noPreview;
         }
 
+        async function autoDetectAddDuration() {
+            const url = convertVideyUrl(document.getElementById('videoUrl').value.trim());
+            if (!url) { showNotification('❌ Isi URL Video dulu!', 'error'); return; }
+            const btn = document.getElementById('btnDetectDuration');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const dur = await detectVideoDuration(url);
+            btn.disabled = false;
+            btn.innerHTML = original;
+            if (dur) { document.getElementById('videoDuration').value = dur; showNotification(`✅ Durasi terdeteksi: ${dur}`, 'success'); }
+            else showNotification('⚠️ Durasi tidak terdeteksi otomatis, isi manual', 'error');
+        }
+
+        async function autoDetectEditDuration() {
+            const url = document.getElementById('editUrlInput').value.trim();
+            if (!url) { showNotification('❌ URL Video kosong!', 'error'); return; }
+            const btn = document.getElementById('btnDetectDurationEdit');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const dur = await detectVideoDuration(url);
+            btn.disabled = false;
+            btn.innerHTML = original;
+            if (dur) { document.getElementById('editDurationInput').value = dur; showNotification(`✅ Durasi terdeteksi: ${dur}`, 'success'); }
+            else showNotification('⚠️ Durasi tidak terdeteksi otomatis, isi manual', 'error');
+        }
+
         document.getElementById('addVideoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             if (!isAdminLoggedIn) { showNotification('❌ Login dulu!', 'error'); return; }
             let title = document.getElementById('videoTitle').value.trim();
             const thumb = document.getElementById('videoThumb').value.trim();
             const manualUrl = convertVideyUrl(document.getElementById('videoUrl').value.trim());
+            let duration = document.getElementById('videoDuration').value.trim();
+            const showDuration = document.getElementById('videoShowDuration').checked;
             const paidUrl = document.getElementById('videoPaidUrl').value.trim();
             const manualSize = document.getElementById('videoSize').value.trim();
             const viewsRaw = document.getElementById('videoViews').value.trim();
@@ -1923,8 +2009,6 @@
             }
             const noPreview = document.getElementById('videoNoPreview').checked;
             const landscape = document.getElementById('videoLandscape').checked;
-            const showDuration = document.getElementById('videoShowDuration').checked;
-            const duration = document.getElementById('videoDuration').value.trim();
             const folderId = document.getElementById('videoFolder').value;
             const newVideoId = 'vid_' + Date.now();
             const isPaywall = paywallOn && !document.getElementById('videoNoPreview').checked;
@@ -1942,6 +2026,7 @@
             if (!finalThumb && alflixKey) finalThumb = fashstreamThumbFromKey(alflixKey);
             else if (!finalThumb && finalUrl && extractVdoseToken(finalUrl)) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thumbnail...'; const vd = await fetchVdoseThumbnail(finalUrl); finalThumb = vd.url; }
             else if (!finalThumb && finalUrl) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thumbnail video...'; const captured = await captureVideoFrameThumbnail(finalUrl); finalThumb = captured.url; }
+            if (showDuration && !duration && finalUrl) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deteksi durasi...'; duration = await detectVideoDuration(finalUrl); }
             if (autoAd && !noPreview && !adLink) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Move2link...'; try { const unlockUrl = window.location.origin + window.location.pathname + '?unlock=' + encodeURIComponent(newVideoId) + (paywallKey ? '&k=' + paywallKey : ''); adLink = await shortenViaMove2link(unlockUrl, title, paywallPrice); } catch (err) { showNotification('⚠️ Move2link gagal', 'error'); } }
             const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
             const initialLikes = likesRaw !== '' ? parseInt(likesRaw) : Math.floor(initialViews * (0.6 + Math.random() * 0.3));
@@ -2233,6 +2318,7 @@
                 video.landscape = document.getElementById('editLandscapeInput').checked;
                 video.showDuration = document.getElementById('editShowDurationInput').checked;
                 video.duration = document.getElementById('editDurationInput').value.trim();
+                if (video.showDuration && !video.duration && video.url) { video.duration = await detectVideoDuration(video.url); }
                 await saveToCloud();
                 closeEditModal();
                 showNotification('✅ Video diperbarui!', 'success');
