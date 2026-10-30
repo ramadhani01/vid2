@@ -6,6 +6,7 @@
     <title>Vidoy Stream</title>
     <link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #14151A; color: white; min-height: 100vh; padding: 20px; }
@@ -133,6 +134,9 @@
         .video-card .thumb .video-paid-badge { position: absolute; top: 8px; left: 8px; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
         .video-card .thumb .video-paid-badge.paid { background: rgba(245, 155, 0, 0.95); color: #14151A; }
         .video-card .thumb .video-paid-badge.free { background: rgba(34, 197, 94, 0.95); color: #0c1a10; }
+        .video-card.landscape { aspect-ratio: 16/9; }
+        .video-card.landscape .thumb { aspect-ratio: 16/9; }
+        .video-card .thumb .video-duration-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 2; letter-spacing: 0.3px; }
         .banner-grid-card .thumb .grid-banner-badge { position: absolute; top: 8px; right: 8px; background: rgba(245, 155, 0, 0.9); color: #14151A; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
 
         .footer { max-width: 1200px; margin: 30px auto 0; text-align: center; padding: 20px 0 10px; border-top: 1px solid #1C1F26; color: #333; font-size: 13px; }
@@ -382,6 +386,9 @@
                 <div class="form-group" id="videoAutoAdRow" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="videoAutoAd" onchange="if(this.checked){document.getElementById('videoPaywall').checked=false;togglePaywallFields();} try{localStorage.setItem('vidoy_auto_ad', this.checked ? '1' : '0')}catch(e){}" style="width:auto; accent-color:#f59b00;"><label for="videoAutoAd" style="margin:0; color:#ccc;">Iklan aktif: buat link Move2link otomatis</label></div>
                 <div class="form-group" id="videoPaywallRow" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="videoPaywall" onchange="togglePaywallFields()" style="width:auto; accent-color:#f59b00;"><label for="videoPaywall" style="margin:0; color:#ccc;">Paywall</label></div>
                 <div class="form-group" id="videoPaywallPriceBox" style="display:none;"><label>Nominal Paywall (Rp)</label><div style="display:flex; gap:8px;"><select id="videoPaywallPrice" onchange="togglePaywallFields()" style="flex:1;"><option value="5000">Rp 5.000</option><option value="10000">Rp 10.000</option><option value="custom">Lainnya…</option></select><input type="text" inputmode="numeric" id="videoPaywallCustom" style="flex:1; display:none;"></div></div>
+                <div class="form-group" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="videoLandscape" style="width:auto; accent-color:#f59b00;"><label for="videoLandscape" style="margin:0; color:#ccc;">Mode Lanskap 16:9 (kartu jadi landscape, jika tidak dicentang kartu normal seperti biasa)</label></div>
+                <div class="form-group" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="videoShowDuration" onchange="document.getElementById('videoDurationBox').style.display=this.checked?'block':'none';" style="width:auto; accent-color:#f59b00;"><label for="videoShowDuration" style="margin:0; color:#ccc;">Tampilkan Durasi</label></div>
+                <div class="form-group" id="videoDurationBox" style="display:none;"><label>Durasi Video (contoh: 12:34)</label><input type="text" id="videoDuration" placeholder="12:34"></div>
                 <div class="form-group"><label>Simpan di Folder (Opsional)</label><select id="videoFolder"><option value="">Root (Tanpa Folder)</option></select></div>
                 <button type="submit" class="btn-submit" id="btnAddVideo"><i class="fas fa-plus"></i> Tambahkan Video</button>
             </form>
@@ -467,6 +474,9 @@
                 <div class="form-group" id="editFolderDualGroup" style="display:none; align-items:center; gap:8px;"><input type="checkbox" id="editFolderDualInput" onchange="toggleEditFolderPaidFields()" style="width:auto; accent-color:#22c55e;"><label for="editFolderDualInput" style="margin:0; color:#ccc;">MODE 2</label></div>
                 <div class="form-group" id="editFolderBuyLinkGroup" style="display:none;"><label>URL Link Beli</label><input type="url" id="editFolderBuyLinkInput"></div>
                 <div class="form-group" id="editFolderDeepLinkGroup" style="display:none;"><label>Link Unlock</label><div style="display:flex; gap:8px;"><input type="text" id="editFolderDeepLinkInput" readonly style="flex:1; opacity:0.8;"><button type="button" class="btn-submit" style="padding:10px 16px;" onclick="copyFolderDeepLink()"><i class="fas fa-copy"></i></button></div></div>
+                <div class="form-group" id="editLandscapeGroup" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editLandscapeInput" style="width:auto; accent-color:#f59b00;"><label for="editLandscapeInput" style="margin:0; color:#ccc;">Mode Lanskap 16:9</label></div>
+                <div class="form-group" id="editShowDurationGroup" style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editShowDurationInput" onchange="document.getElementById('editDurationBox').style.display=this.checked?'block':'none';" style="width:auto; accent-color:#f59b00;"><label for="editShowDurationInput" style="margin:0; color:#ccc;">Tampilkan Durasi</label></div>
+                <div class="form-group" id="editDurationBox" style="display:none;"><label>Durasi Video (contoh: 12:34)</label><input type="text" id="editDurationInput" placeholder="12:34"></div>
                 <div class="form-group" id="editStatsGroup"><label>Ukuran File</label><input type="text" id="editSizeInput"></div>
                 <div class="row" id="editStatsRow" style="display:flex; gap:16px;">
                     <div class="form-group" style="flex:1;"><label>Jumlah Ditonton</label><input type="number" id="editViewsInput" min="0"></div>
@@ -1116,6 +1126,7 @@
             poster.style.display = 'block';
             player.style.display = 'none';
             removeExternalPlayer();
+            destroyCurrentHls();
             player.pause();
             player.removeAttribute('src');
             loading.style.display = 'none';
@@ -1132,11 +1143,20 @@
         function isDirectVideoUrl(url) {
             if (!url) return false;
             if (url.indexOf('/storage/v1/object/public/') !== -1) return true;
-            return /\.(mp4|webm|m4v|mov|ogv|m3u8)(\?|#|$)/i.test(url);
+            if (/\.(mp4|webm|m4v|mov|ogv|m3u8)(\?|#|$)/i.test(url)) return true;
+            if (/\/(hls|stream|playlist|master)(\?|\/|$)/i.test(url)) return true;
+            return false;
+        }
+        function isHlsUrl(url) {
+            if (!url) return false;
+            if (/\.m3u8(\?|#|$)/i.test(url)) return true;
+            return /\/(hls|master|playlist)(\?|\/|$)/i.test(url);
         }
         const FOLLOW_LINK_HOSTS = ['slicndrive.com', 'aceming.com'];
         function isFollowLinkUrl(url) { try { const h = new URL(url).hostname.toLowerCase(); return FOLLOW_LINK_HOSTS.some(d => h === d || h.endsWith('.' + d)); } catch (e) { return false; } }
         function removeExternalPlayer() { const old = document.getElementById('externalPlayerWrap'); if (old) old.remove(); }
+        let currentHls = null;
+        function destroyCurrentHls() { if (currentHls) { try { currentHls.destroy(); } catch (e) {} currentHls = null; } }
         function showExternalPlayer(url) {
             removeExternalPlayer();
             const box = document.querySelector('.video-detail-player');
@@ -1169,7 +1189,55 @@
             errorBox.classList.remove('visible');
             loading.style.display = 'block';
             errorLink.href = playUrl;
-            if (!isDirectVideoUrl(playUrl) || isFollowLinkUrl(playUrl)) {
+            destroyCurrentHls();
+            player.removeAttribute('src');
+            // Host yang memang dirancang untuk dibuka di tab lain (follow link / aff link) tetap redirect.
+            if (isFollowLinkUrl(playUrl)) {
+                loading.style.display = 'none';
+                poster.style.display = 'block';
+                window.open(playUrl, '_blank');
+                return;
+            }
+            const fallbackToNewTab = function() {
+                loading.style.display = 'none';
+                player.style.display = 'none';
+                const w = window.open(playUrl, '_blank');
+                if (w) poster.style.display = 'block';
+                else errorBox.classList.add('visible');
+            };
+            const onReady = function() {
+                loading.style.display = 'none';
+                player.style.display = 'block';
+                attachPreviewGateListeners();
+                enforcePreviewGate();
+            };
+            const wantsHls = isHlsUrl(playUrl);
+            // Browser non-Safari tidak bisa memutar HLS (.m3u8 / endpoint stream) secara native,
+            // jadi gunakan hls.js supaya video tetap diputar di halaman, bukan redirect/buka tab baru.
+            if (wantsHls && window.Hls && window.Hls.isSupported()) {
+                const hls = new window.Hls({ maxBufferLength: 30 });
+                currentHls = hls;
+                hls.on(window.Hls.Events.MANIFEST_PARSED, function() { player.play().catch(() => {}); });
+                hls.on(window.Hls.Events.ERROR, function(event, data) {
+                    if (data && data.fatal) { destroyCurrentHls(); fallbackToNewTab(); }
+                });
+                hls.loadSource(playUrl);
+                hls.attachMedia(player);
+                player.oncanplay = onReady;
+                player.style.display = 'block';
+                loading.style.display = 'none';
+                return;
+            }
+            if (wantsHls && player.canPlayType('application/vnd.apple.mpegurl')) {
+                // Safari / iOS: dukungan HLS native pada tag <video>.
+                player.src = playUrl;
+                player.load();
+                player.oncanplay = onReady;
+                player.onerror = fallbackToNewTab;
+                player.play().catch(() => {});
+                return;
+            }
+            if (!isDirectVideoUrl(playUrl)) {
                 loading.style.display = 'none';
                 poster.style.display = 'block';
                 window.open(playUrl, '_blank');
@@ -1177,18 +1245,24 @@
             }
             player.src = playUrl;
             player.load();
-            player.oncanplay = function() {
-                loading.style.display = 'none';
-                player.style.display = 'block';
-                attachPreviewGateListeners();
-                enforcePreviewGate();
-            };
+            player.oncanplay = onReady;
             player.onerror = function() {
-                loading.style.display = 'none';
-                player.style.display = 'none';
-                const w = window.open(playUrl, '_blank');
-                if (w) poster.style.display = 'block';
-                else errorBox.classList.add('visible');
+                // Coba sekali lagi lewat hls.js sebelum menyerah — beberapa endpoint API
+                // (seperti /api/hls?...) sebenarnya mengembalikan playlist HLS walau URL-nya tidak berekstensi .m3u8.
+                if (window.Hls && window.Hls.isSupported() && !player.dataset.hlsRetried) {
+                    player.dataset.hlsRetried = '1';
+                    const hls = new window.Hls({ maxBufferLength: 30 });
+                    currentHls = hls;
+                    hls.on(window.Hls.Events.MANIFEST_PARSED, function() { player.play().catch(() => {}); });
+                    hls.on(window.Hls.Events.ERROR, function(event, data) { if (data && data.fatal) { destroyCurrentHls(); fallbackToNewTab(); } });
+                    hls.loadSource(playUrl);
+                    hls.attachMedia(player);
+                    player.oncanplay = onReady;
+                    player.style.display = 'block';
+                    loading.style.display = 'none';
+                    return;
+                }
+                fallbackToNewTab();
             };
             player.play().catch(() => {});
         }
@@ -1517,11 +1591,11 @@
             const photos = (folderObj && Array.isArray(folderObj.photos)) ? folderObj.photos : [];
             if ((!items || items.length === 0) && photos.length === 0) { grid.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><h2>Kosong</h2><p>Tidak ada video atau foto di sini</p></div>`; document.getElementById('totalCount').textContent = '0'; return; }
             const videosHtml = (items || []).map((v, idx) => `
-                <div class="video-card" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${v.id}', ${isFolderView}); }">
+                <div class="video-card${v.landscape ? ' landscape' : ''}" data-id="${v.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${v.id}', ${isFolderView}); }">
                     ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}', ${isFolderView})"><i class="fas fa-times"></i></button>` : ''}
                     ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${v.id}', ${isFolderView})"><i class="fas fa-pen"></i></button>` : ''}
                     ${showDelete ? `<div class="sort-controls show" onclick="event.stopPropagation();"><div class="sort-input-group"><input type="number" id="sort_input_${v.id}" min="1" max="${totalItems}" value="${idx + 1}" onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveVideoToPosition('${v.id}', parseInt(this.value)); }"><button class="sort-go" onclick="event.stopPropagation(); moveVideoToPosition('${v.id}', parseInt(document.getElementById('sort_input_${v.id}').value));">Go</button></div><span class="sort-total">/${totalItems}</span></div>` : ''}
-                    <div class="thumb"><img src="${escapeHtml(v.thumbnail)}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'"></div>
+                    <div class="thumb"><img src="${escapeHtml(v.thumbnail)}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">${(v.showDuration && v.duration) ? `<div class="video-duration-badge">${escapeHtml(v.duration)}</div>` : ''}</div>
                     <div class="info"><h3 title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</h3></div>
                 </div>
             `).join('');
@@ -1626,13 +1700,14 @@
             });
             data.rootVideos.forEach((item, idx) => {
                 html += `
-                    <div class="video-card" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${item.id}', false); }">
+                    <div class="video-card${item.landscape ? ' landscape' : ''}" data-id="${item.id}" onclick="if(!event.target.closest('.sort-controls') && !event.target.closest('.edit-btn')) { playVideo('${item.id}', false); }">
                         ${showDelete ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteVideo('${item.id}', false)"><i class="fas fa-times"></i></button>` : ''}
                         ${showDelete ? `<button class="edit-btn" onclick="event.stopPropagation(); openEditVideo('${item.id}', false)"><i class="fas fa-pen"></i></button>` : ''}
                         ${showDelete ? `<div class="sort-controls show" onclick="event.stopPropagation();"><div class="sort-input-group"><input type="number" id="sort_input_${item.id}" min="1" max="${totalVideos || 1}" value="${idx + 1}" onkeydown="if(event.key === 'Enter') { event.stopPropagation(); moveVideoToPosition('${item.id}', parseInt(this.value)); }"><button class="sort-go" onclick="event.stopPropagation(); moveVideoToPosition('${item.id}', parseInt(document.getElementById('sort_input_${item.id}').value));">Go</button></div><span class="sort-total">/${totalVideos}</span></div>` : ''}
                         <div class="thumb">
                             <img src="${escapeHtml(item.thumbnail)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x533/222/f59b00?text=No+Image'">
                             ${item.noPreview ? `<div class="video-paid-badge free"><i class="fas fa-unlock"></i> FREE</div>` : (isVideoUnlocked(item.id) ? `<div class="video-paid-badge free"><i class="fas fa-unlock"></i> DIBELI</div>` : `<div class="video-paid-badge paid"><i class="fas fa-lock"></i> PAID</div>`)}
+                            ${(item.showDuration && item.duration) ? `<div class="video-duration-badge">${escapeHtml(item.duration)}</div>` : ''}
                         </div>
                         <div class="info"><h3 title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</h3></div>
                     </div>
@@ -1847,6 +1922,9 @@
                 if (!paywallPrice || paywallPrice < 500 || paywallPrice > 5000000) { showNotification('❌ Nominal paywall 500–5.000.000', 'error'); return; }
             }
             const noPreview = document.getElementById('videoNoPreview').checked;
+            const landscape = document.getElementById('videoLandscape').checked;
+            const showDuration = document.getElementById('videoShowDuration').checked;
+            const duration = document.getElementById('videoDuration').value.trim();
             const folderId = document.getElementById('videoFolder').value;
             const newVideoId = 'vid_' + Date.now();
             const isPaywall = paywallOn && !document.getElementById('videoNoPreview').checked;
@@ -1867,11 +1945,12 @@
             if (autoAd && !noPreview && !adLink) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Move2link...'; try { const unlockUrl = window.location.origin + window.location.pathname + '?unlock=' + encodeURIComponent(newVideoId) + (paywallKey ? '&k=' + paywallKey : ''); adLink = await shortenViaMove2link(unlockUrl, title, paywallPrice); } catch (err) { showNotification('⚠️ Move2link gagal', 'error'); } }
             const initialViews = viewsRaw !== '' ? parseInt(viewsRaw) : Math.floor(Math.random() * 2000) + 100;
             const initialLikes = likesRaw !== '' ? parseInt(likesRaw) : Math.floor(initialViews * (0.6 + Math.random() * 0.3));
-            const newVideo = { id: newVideoId, title, thumbnail: finalThumb, url: finalUrl, paidUrl, size: finalSize, views: initialViews, likes: initialLikes, previewSeconds: parsePreviewTime(previewSecondsRaw, 5), adLink, noPreview, paywall: isPaywall, paywallPrice: isPaywall ? paywallPrice : 0, paywallKey, date: new Date().toISOString() };
+            const newVideo = { id: newVideoId, title, thumbnail: finalThumb, url: finalUrl, paidUrl, size: finalSize, views: initialViews, likes: initialLikes, previewSeconds: parsePreviewTime(previewSecondsRaw, 5), adLink, noPreview, paywall: isPaywall, paywallPrice: isPaywall ? paywallPrice : 0, paywallKey, landscape, showDuration, duration, date: new Date().toISOString() };
             if (folderId) { const folder = data.folders.find(f => f.id === folderId); if (folder) folder.videos.push(newVideo); } else data.rootVideos.push(newVideo);
             await saveToCloud();
             showNotification(`✅ Video "${title}" ditambahkan!`, 'success');
             this.reset();
+            document.getElementById('videoDurationBox').style.display = 'none';
             restoreMonetizeToggles();
             toggleAddNoPreviewFields();
             renderCurrentView();
@@ -1996,6 +2075,9 @@
             document.getElementById('editPreviewAdRow').style.display = 'none';
             document.getElementById('editStatsGroup').style.display = 'none';
             document.getElementById('editStatsRow').style.display = 'none';
+            document.getElementById('editLandscapeGroup').style.display = 'none';
+            document.getElementById('editShowDurationGroup').style.display = 'none';
+            document.getElementById('editDurationBox').style.display = 'none';
             document.getElementById('editFolderPaidGroup').style.display = 'none';
             document.getElementById('editFolderDualGroup').style.display = 'none';
             document.getElementById('editFolderBuyLinkGroup').style.display = 'none';
@@ -2065,6 +2147,12 @@
             document.getElementById('editSizeInput').value = video.size || '';
             document.getElementById('editViewsInput').value = video.views || 0;
             document.getElementById('editLikesInput').value = video.likes || 0;
+            document.getElementById('editLandscapeGroup').style.display = 'flex';
+            document.getElementById('editShowDurationGroup').style.display = 'flex';
+            document.getElementById('editLandscapeInput').checked = !!video.landscape;
+            document.getElementById('editShowDurationInput').checked = !!video.showDuration;
+            document.getElementById('editDurationInput').value = video.duration || '';
+            document.getElementById('editDurationBox').style.display = video.showDuration ? 'block' : 'none';
             document.getElementById('editModal').classList.add('visible');
         }
 
@@ -2085,6 +2173,9 @@
             document.getElementById('editPreviewAdRow').style.display = 'none';
             document.getElementById('editStatsGroup').style.display = 'none';
             document.getElementById('editStatsRow').style.display = 'none';
+            document.getElementById('editLandscapeGroup').style.display = 'none';
+            document.getElementById('editShowDurationGroup').style.display = 'none';
+            document.getElementById('editDurationBox').style.display = 'none';
             document.getElementById('editFolderPaidGroup').style.display = 'flex';
             document.getElementById('editFolderDualGroup').style.display = 'flex';
             document.getElementById('editFolderBuyLinkGroup').style.display = 'block';
@@ -2139,6 +2230,9 @@
                 video.likes = newLikes !== '' ? parseInt(newLikes) : (video.likes || 0);
                 video.previewSeconds = parsePreviewTime(newPreviewSeconds, 5);
                 video.adLink = newAdLink; video.noPreview = newNoPreview;
+                video.landscape = document.getElementById('editLandscapeInput').checked;
+                video.showDuration = document.getElementById('editShowDurationInput').checked;
+                video.duration = document.getElementById('editDurationInput').value.trim();
                 await saveToCloud();
                 closeEditModal();
                 showNotification('✅ Video diperbarui!', 'success');
