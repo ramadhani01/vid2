@@ -1185,9 +1185,57 @@
             return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
         }
 
+        // Parse total duration from an m3u8 playlist text.
+        // Handles both flat VOD playlists (#EXTINF lines) and master playlists
+        // (recursively fetches the first media playlist).
+        async function parseM3u8Duration(m3u8Text, baseUrl, depth) {
+            depth = depth || 0;
+            // master playlist → find first media playlist URI and recurse
+            if (m3u8Text.indexOf('#EXT-X-STREAM-INF') !== -1) {
+                if (depth > 2) return 0;
+                const lines = m3u8Text.split(/\r?\n/);
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (lines[i - 1] && lines[i - 1].indexOf('#EXT-X-STREAM-INF') !== -1 && line && !line.startsWith('#')) {
+                        try {
+                            const mediaUrl = line.startsWith('http') ? line : new URL(line, baseUrl).href;
+                            const r = await fetch(mediaUrl, { cache: 'no-store' });
+                            if (!r.ok) return 0;
+                            return await parseM3u8Duration(await r.text(), mediaUrl, depth + 1);
+                        } catch (e) { return 0; }
+                    }
+                }
+                return 0;
+            }
+            // media playlist → sum #EXTINF durations
+            let total = 0;
+            const re = /#EXTINF:([\d.]+)/g;
+            let m;
+            while ((m = re.exec(m3u8Text)) !== null) total += parseFloat(m[1]);
+            return total;
+        }
+
+        async function detectM3u8Duration(url) {
+            try {
+                const r = await fetch(url, { cache: 'no-store' });
+                if (!r.ok) return '';
+                const text = await r.text();
+                const dur = await parseM3u8Duration(text, url, 0);
+                return (dur > 0) ? formatDurationSeconds(dur) : '';
+            } catch (e) { return ''; }
+        }
+
         function detectVideoDuration(url) {
+            if (!url) return Promise.resolve('');
+            // HLS: fetch + parse manifest — fastest and most reliable, no CORS issue from hls.js
+            if (isHlsUrl(url)) {
+                return Promise.race([
+                    detectM3u8Duration(url),
+                    new Promise(r => setTimeout(() => r(''), 15000))
+                ]);
+            }
+            // Non-HLS: video element loadedmetadata
             return new Promise((resolve) => {
-                if (!url) { resolve(''); return; }
                 const vid = document.createElement('video');
                 vid.crossOrigin = 'anonymous';
                 vid.preload = 'metadata';
@@ -1198,11 +1246,9 @@
                 vid.setAttribute('playsinline', '');
                 vid.style.cssText = 'position:fixed; top:-9999px; left:-9999px; width:2px; height:2px;';
                 document.body.appendChild(vid);
-                let hls = null;
                 let settled = false;
                 const cleanup = () => {
                     clearTimeout(timeoutId);
-                    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
                     try { vid.pause(); } catch (e) {}
                     vid.removeAttribute('src');
                     try { vid.load(); } catch (e) {}
@@ -1211,25 +1257,11 @@
                 const finish = (val) => { if (settled) return; settled = true; cleanup(); resolve(val); };
                 const timeoutId = setTimeout(() => finish(''), 12000);
                 vid.addEventListener('loadedmetadata', function() {
-                    // for native (non-HLS) or when hls.js already resolved duration
                     if (isFinite(vid.duration) && vid.duration > 0) finish(formatDurationSeconds(vid.duration));
                 });
                 vid.addEventListener('error', function() { finish(''); });
-                if (isHlsUrl(url) && window.Hls && window.Hls.isSupported()) {
-                    hls = new window.Hls({ maxBufferLength: 10, autoStartLoad: true });
-                    // LEVEL_LOADED carries totalduration from the parsed playlist — works even
-                    // when loadedmetadata fires Infinity (common with segmented HLS)
-                    hls.on(window.Hls.Events.LEVEL_LOADED, function(ev, data) {
-                        const dur = data && data.details && data.details.totalduration;
-                        if (dur && isFinite(dur) && dur > 0) finish(formatDurationSeconds(dur));
-                    });
-                    hls.on(window.Hls.Events.ERROR, function(ev, data) { if (data && data.fatal) finish(''); });
-                    hls.loadSource(url);
-                    hls.attachMedia(vid);
-                } else {
-                    vid.src = url;
-                    vid.load();
-                }
+                vid.src = url;
+                vid.load();
             });
         }
         // isi dengan url worker, contoh: 'https://hls-proxy.namamu.workers.dev/?u=' (lihat hls-proxy-worker.js)
