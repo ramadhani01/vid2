@@ -742,6 +742,13 @@
 
         function extractVdoseToken(url) { const m = String(url || '').trim().match(/^https?:\/\/(?:[^\/]+\.)?slicndrive\.com\/([A-Za-z0-9_-]+)\.mp4(?:[?#].*)?$/i); return m ? m[1] : ''; }
         function extractAlflixKey(url) { const m = String(url || '').trim().match(/^https?:\/\/stream\.alflix\.cv\/(videos\/[^?#]+\.[a-z0-9]+)(?:[?#].*)?$/i); return m ? m[1] : ''; }
+        // zkasmn / alonestreaming HLS → jable CDN thumbnail
+        // pattern: …/hls/<token>/<big>/<a>/<b>/<b>.m3u8  →  assets-cdn.jable.tv/…/<a>/<b>/preview.jpg
+        function extractZkasmnThumb(url) {
+            const m = String(url || '').trim().match(/alonestreaming\.com\/hls\/[^\/]+\/\d+\/(\d+)\/(\d+)\/\2\.m3u8(?:[?#].*)?$/i);
+            if (!m) return '';
+            return 'https://assets-cdn.jable.tv/contents/videos_screenshots/' + m[1] + '/' + m[2] + '/preview.jpg';
+        }
         function probeImageUrl(url, timeoutMs = 8000) { return new Promise((resolve) => { const img = new Image(); const t = setTimeout(() => { img.onload = img.onerror = null; resolve(false); }, timeoutMs); img.onload = () => { clearTimeout(t); resolve(img.naturalWidth > 0); }; img.onerror = () => { clearTimeout(t); resolve(false); }; img.src = url; }); }
         function fashstreamThumbFromKey(key) { key = String(key || '').trim().replace(/^\/+/, ''); if (!/\.[a-z0-9]+$/i.test(key)) return ''; const t = key.startsWith('videos/') ? key.replace(/^videos\//, 'thumbs/') : 'thumbs/' + key; return FASHSTREAM_THUMB_BASE + t.replace(/\.[a-z0-9]+$/i, '.jpg'); }
         function applyFashstreamKey() {
@@ -972,6 +979,8 @@
             }
             const ak = extractAlflixKey(url);
             if (ak) return { url: url, thumb: fashstreamThumbFromKey(ak), reason: 'ok' };
+            const zkThumb = extractZkasmnThumb(url);
+            if (zkThumb) return { url: url, thumb: zkThumb, reason: 'ok' };
             const cap = await captureVideoFrameThumbnail(url);
             return { url: url, thumb: cap.url, reason: cap.reason };
         }
@@ -2062,7 +2071,9 @@
             let finalThumb = thumb;
             if (finalUrl && extractVdoseToken(finalUrl)) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resolve link...'; const rs = await resolveSlicnToStream(finalUrl); if (rs.url) { finalUrl = rs.url; if (!finalThumb) finalThumb = rs.thumb; } else { showNotification('⚠️ Link download tidak bisa diambil', 'error'); } }
             const alflixKey = extractAlflixKey(finalUrl);
+            const zkasmnThumb = extractZkasmnThumb(finalUrl);
             if (!finalThumb && alflixKey) finalThumb = fashstreamThumbFromKey(alflixKey);
+            else if (!finalThumb && zkasmnThumb) finalThumb = zkasmnThumb;
             else if (!finalThumb && finalUrl && extractVdoseToken(finalUrl)) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thumbnail...'; const vd = await fetchVdoseThumbnail(finalUrl); finalThumb = vd.url; }
             else if (!finalThumb && finalUrl) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thumbnail video...'; const captured = await captureVideoFrameThumbnail(finalUrl); finalThumb = captured.url; }
             if (showDuration && !duration && finalUrl) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deteksi durasi...'; duration = await detectVideoDuration(finalUrl); }
