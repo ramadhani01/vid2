@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <meta name="referrer" content="no-referrer">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vidoy Stream</title>
@@ -360,14 +361,7 @@
             <form id="addVideoForm">
                 <div class="form-group"><label>Judul Video</label><input type="text" id="videoTitle" placeholder="Kosong = otomatis nomor urut folder"></div>
                 <div class="form-group"><label>URL Thumbnail</label><div style="display:flex; gap:8px; align-items:center;"><input type="url" id="videoThumb" style="flex:1;"><label style="flex:0 0 auto; background:#1C1F26; border:1px solid #333; color:#f59b00; padding:9px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;"><i class="fas fa-upload"></i> Upload<input type="file" accept="image/*" style="display:none" onchange="handleThumbFileUpload(this,'videoThumb','videoThumbStatus')"></label></div><span id="videoThumbStatus" style="display:none; font-size:12px; margin-top:4px;"></span></div>
-                <div class="form-group">
-                    <label>URL Video</label>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4" style="flex:1;" oninput="onVideoUrlInput(this.value)">
-                        <button type="button" id="btnAutoThumb" onclick="autoFetchThumbFromUrl()" style="flex:0 0 auto; background:#1C1F26; border:1px solid #f59b00; color:#f59b00; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap; display:none;"><i class="fas fa-image"></i> Auto Thumb</button>
-                    </div>
-                    <span id="autoThumbStatus" style="display:none; font-size:12px; margin-top:4px;"></span>
-                </div>
+                <div class="form-group"><label>URL Video</label><input type="url" id="videoUrl" placeholder="https://example.com/video.mp4"></div>
                 <div class="form-group">
                     <label>Tambah Banyak URL Sekaligus (satu per baris)</label>
                     <textarea id="batchUrls" rows="5" placeholder="https://cdn2.slicndrive.com/xxxx.mp4"></textarea>
@@ -969,36 +963,6 @@
             else { setSt('✅ ' + okCount + ' video ditambahkan', '#22c55e'); showNotification('✅ ' + okCount + ' video ditambahkan!', 'success'); }
         }
 
-        function onVideoUrlInput(url) {
-            const btn = document.getElementById('btnAutoThumb');
-            if (!btn) return;
-            btn.style.display = (isEmbedPlayerUrl(url) || extractVdoseToken(url) || extractAlflixKey(url)) ? 'inline-flex' : 'none';
-        }
-
-        async function autoFetchThumbFromUrl() {
-            const url = document.getElementById('videoUrl').value.trim();
-            if (!url) return;
-            const st = document.getElementById('autoThumbStatus');
-            const thumbInput = document.getElementById('videoThumb');
-            const btn = document.getElementById('btnAutoThumb');
-            st.style.display = 'inline'; st.style.color = '#888'; st.textContent = 'Mengambil thumbnail…';
-            btn.disabled = true;
-            try {
-                const r = await resolveEntryForUrl(url);
-                if (r.thumb) {
-                    thumbInput.value = r.thumb;
-                    st.style.color = '#22c55e'; st.textContent = '✅ Thumbnail berhasil diambil!';
-                } else {
-                    st.style.color = '#f59b00'; st.textContent = '⚠️ Thumbnail tidak ditemukan, isi manual.';
-                }
-            } catch (e) {
-                st.style.color = '#ef4444'; st.textContent = '❌ Gagal: ' + e.message;
-            } finally {
-                btn.disabled = false;
-                setTimeout(() => { st.style.display = 'none'; }, 4000);
-            }
-        }
-
         async function resolveEntryForUrl(url) {
             if (extractVdoseToken(url)) {
                 const rs = await resolveSlicnToStream(url);
@@ -1008,11 +972,6 @@
             }
             const ak = extractAlflixKey(url);
             if (ak) return { url: url, thumb: fashstreamThumbFromKey(ak), reason: 'ok' };
-            // Putarin.biz & embed player → ambil thumbnail khusus, jangan coba capture frame
-            if (isEmbedPlayerUrl(url)) {
-                const thumb = await fetchPutarinThumbnail(url);
-                return { url: url, thumb, reason: thumb ? 'ok' : 'thumbnail embed tidak ditemukan' };
-            }
             const cap = await captureVideoFrameThumbnail(url);
             return { url: url, thumb: cap.url, reason: cap.reason };
         }
@@ -1202,50 +1161,6 @@
         }
         const FOLLOW_LINK_HOSTS = ['slicndrive.com', 'aceming.com'];
         function isFollowLinkUrl(url) { try { const h = new URL(url).hostname.toLowerCase(); return FOLLOW_LINK_HOSTS.some(d => h === d || h.endsWith('.' + d)); } catch (e) { return false; } }
-
-        // ── Putarin.biz & embed player support ──────────────────────────────
-        const EMBED_PLAYER_HOSTS = ['putarin.biz', 'nonton.xxx', 'vidmoly.to', 'doodstream.com', 'streamtape.com', 'mixdrop.co', 'voe.sx', 'upstream.to'];
-        function isEmbedPlayerUrl(url) {
-            if (!url) return false;
-            try {
-                const h = new URL(url).hostname.toLowerCase();
-                return EMBED_PLAYER_HOSTS.some(d => h === d || h.endsWith('.' + d));
-            } catch (e) { return false; }
-        }
-        function extractPutarinToken(url) {
-            if (!url) return '';
-            const m = String(url).trim().match(/putarin\.biz\/(?:e|v|embed)\/([A-Za-z0-9_-]+)/i);
-            return m ? m[1] : '';
-        }
-        async function fetchPutarinThumbnail(url) {
-            const token = extractPutarinToken(url);
-            if (!token) return '';
-            // Coba pola-pola thumbnail yang umum dipakai embed hosts
-            const candidates = [
-                'https://putarin.biz/thumbnail/' + token + '.jpg',
-                'https://putarin.biz/thumb/' + token + '.jpg',
-                'https://putarin.biz/i/' + token + '.jpg',
-                'https://putarin.biz/poster/' + token + '.jpg',
-                'https://putarin.biz/image/' + token + '.jpg',
-            ];
-            for (const c of candidates) {
-                if (await probeImageUrl(c, 5000)) return c;
-            }
-            // Fallback: coba ambil og:image via CORS proxy
-            try {
-                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-                const res = await fetch(proxyUrl, { cache: 'no-store' });
-                if (res.ok) {
-                    const j = await res.json();
-                    const html = j.contents || '';
-                    const m = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
-                            || html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i)
-                            || html.match(/<meta[^>]*og:image[^>]*content=["']([^"']+)["']/i);
-                    if (m && m[1] && /^https?:\/\//i.test(m[1])) return m[1];
-                }
-            } catch (e) { /* proxy gagal, lanjut */ }
-            return '';
-        }
         function removeExternalPlayer() { const old = document.getElementById('externalPlayerWrap'); if (old) old.remove(); }
         let currentHls = null;
         function destroyCurrentHls() { if (currentHls) { try { currentHls.destroy(); } catch (e) {} currentHls = null; } }
@@ -1298,6 +1213,29 @@
                 }
             });
         }
+        function startHlsPlayback(player, url, onPlayable, onFail) {
+            destroyCurrentHls();
+            const H = window.Hls;
+            const hls = new H({ maxBufferLength: 30, enableWorker: true, manifestLoadingMaxRetry: 2, levelLoadingMaxRetry: 2, fragLoadingMaxRetry: 3, xhrSetup: function(xhr) { xhr.withCredentials = false; } });
+            currentHls = hls;
+            let netRetry = 0, mediaRetry = 0, done = false;
+            hls.on(H.Events.MANIFEST_PARSED, function() { if (!done) { done = true; onPlayable(); } });
+            hls.on(H.Events.ERROR, function(ev, data) {
+                if (!data || !data.fatal) return;
+                if (data.type === H.ErrorTypes.MEDIA_ERROR && mediaRetry++ < 2) { hls.recoverMediaError(); return; }
+                if (data.type === H.ErrorTypes.NETWORK_ERROR && done && netRetry++ < 2) { hls.startLoad(); return; }
+                const code = data.response && data.response.code;
+                let why = data.details || 'error';
+                if (code === 403 || code === 401) why = 'ditolak server ' + code + ' — token/referer';
+                else if (code === 404) why = 'link 404 / kedaluwarsa';
+                else if (code) why = 'HTTP ' + code;
+                else if (data.type === H.ErrorTypes.NETWORK_ERROR) why = 'diblokir CORS / jaringan';
+                console.error('HLS fatal', data);
+                onFail(why);
+            });
+            hls.loadSource(url);
+            hls.attachMedia(player);
+        }
         function showExternalPlayer(url) {
             removeExternalPlayer();
             const box = document.querySelector('.video-detail-player');
@@ -1339,12 +1277,15 @@
                 window.open(playUrl, '_blank');
                 return;
             }
-            const fallbackToNewTab = function() {
+            const fallbackToNewTab = function(reason) {
+                // tidak lagi auto-redirect: tampilkan error di halaman, link tab baru hanya manual
+                destroyCurrentHls();
                 loading.style.display = 'none';
                 player.style.display = 'none';
-                const w = window.open(playUrl, '_blank');
-                if (w) poster.style.display = 'block';
-                else errorBox.classList.add('visible');
+                poster.style.display = 'block';
+                const msg = errorBox.querySelector('p');
+                if (msg) msg.textContent = 'Video tidak dapat diputar' + (typeof reason === 'string' && reason ? ' (' + reason + ')' : '') + '.';
+                errorBox.classList.add('visible');
             };
             const onReady = function() {
                 loading.style.display = 'none';
@@ -1356,15 +1297,7 @@
             // Browser non-Safari tidak bisa memutar HLS (.m3u8 / endpoint stream) secara native,
             // jadi gunakan hls.js supaya video tetap diputar di halaman, bukan redirect/buka tab baru.
             if (wantsHls && window.Hls && window.Hls.isSupported()) {
-                const hls = new window.Hls({ maxBufferLength: 30 });
-                currentHls = hls;
-                hls.on(window.Hls.Events.MANIFEST_PARSED, function() { player.play().catch(() => {}); });
-                hls.on(window.Hls.Events.ERROR, function(event, data) {
-                    if (data && data.fatal) { destroyCurrentHls(); fallbackToNewTab(); }
-                });
-                hls.loadSource(playUrl);
-                hls.attachMedia(player);
-                player.oncanplay = onReady;
+                startHlsPlayback(player, playUrl, function() { onReady(); player.play().catch(() => {}); }, fallbackToNewTab);
                 player.style.display = 'block';
                 loading.style.display = 'none';
                 return;
@@ -1374,15 +1307,8 @@
                 player.src = playUrl;
                 player.load();
                 player.oncanplay = onReady;
-                player.onerror = fallbackToNewTab;
+                player.onerror = function() { fallbackToNewTab('format tidak didukung'); };
                 player.play().catch(() => {});
-                return;
-            }
-            // Embed player (putarin.biz dll) → tampilkan langsung via iframe di halaman
-            if (isEmbedPlayerUrl(playUrl)) {
-                loading.style.display = 'none';
-                poster.style.display = 'none';
-                showExternalPlayer(playUrl);
                 return;
             }
             if (!isDirectVideoUrl(playUrl)) {
@@ -1399,18 +1325,12 @@
                 // (seperti /api/hls?...) sebenarnya mengembalikan playlist HLS walau URL-nya tidak berekstensi .m3u8.
                 if (window.Hls && window.Hls.isSupported() && !player.dataset.hlsRetried) {
                     player.dataset.hlsRetried = '1';
-                    const hls = new window.Hls({ maxBufferLength: 30 });
-                    currentHls = hls;
-                    hls.on(window.Hls.Events.MANIFEST_PARSED, function() { player.play().catch(() => {}); });
-                    hls.on(window.Hls.Events.ERROR, function(event, data) { if (data && data.fatal) { destroyCurrentHls(); fallbackToNewTab(); } });
-                    hls.loadSource(playUrl);
-                    hls.attachMedia(player);
-                    player.oncanplay = onReady;
+                    startHlsPlayback(player, playUrl, function() { onReady(); player.play().catch(() => {}); }, fallbackToNewTab);
                     player.style.display = 'block';
                     loading.style.display = 'none';
                     return;
                 }
-                fallbackToNewTab();
+                fallbackToNewTab('format tidak didukung');
             };
             player.play().catch(() => {});
         }
