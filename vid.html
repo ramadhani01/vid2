@@ -1136,6 +1136,7 @@
             delete player.dataset.hlsRetried;
             player.pause();
             player.removeAttribute('src');
+            delete player.dataset.nativeTried;
             loading.style.display = 'none';
             errorBox.classList.remove('visible');
             document.getElementById('previewGateOverlay').classList.remove('visible');
@@ -1213,8 +1214,12 @@
                 }
             });
         }
+        // isi dengan url worker, contoh: 'https://hls-proxy.namamu.workers.dev/?u=' (lihat hls-proxy-worker.js)
+        const HLS_PROXY = '';
         function startHlsPlayback(player, url, onPlayable, onFail) {
             destroyCurrentHls();
+            const origUrl = url;
+            if (HLS_PROXY) url = HLS_PROXY + encodeURIComponent(url);
             const H = window.Hls;
             const hls = new H({ maxBufferLength: 30, enableWorker: true, manifestLoadingMaxRetry: 2, levelLoadingMaxRetry: 2, fragLoadingMaxRetry: 3, xhrSetup: function(xhr) { xhr.withCredentials = false; } });
             currentHls = hls;
@@ -1231,6 +1236,17 @@
                 else if (code) why = 'HTTP ' + code;
                 else if (data.type === H.ErrorTypes.NETWORK_ERROR) why = 'diblokir CORS / jaringan';
                 console.error('HLS fatal', data);
+                // CORS cuma memblokir XHR hls.js; <video> native (Android Chrome / Safari) tidak kena CORS
+                if (!code && data.type === H.ErrorTypes.NETWORK_ERROR && !HLS_PROXY && !player.dataset.nativeTried && player.canPlayType('application/vnd.apple.mpegurl')) {
+                    player.dataset.nativeTried = '1';
+                    destroyCurrentHls();
+                    player.oncanplay = function() { if (!done) { done = true; onPlayable(); } };
+                    player.onerror = function() { onFail(why); };
+                    player.src = origUrl;
+                    player.load();
+                    player.play().catch(() => {});
+                    return;
+                }
                 onFail(why);
             });
             hls.loadSource(url);
